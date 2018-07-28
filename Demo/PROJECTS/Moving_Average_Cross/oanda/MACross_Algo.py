@@ -67,7 +67,6 @@ TICK_FEED = ktrade.event_new_tick(PAIR)
 
 
 
-
 print("is this feed correct?")
 
 
@@ -96,7 +95,7 @@ def Moving_Average_Cross_Algo():
         #if tick['type'] == 'PRICE':
         if True:
 
-            #This bar is only used to check the timestamp to see if there is a new bar on this tick. 
+            #This bar is only used to check the timestamp to see if there is a new bar on this tick. "name is a timestamp"
             currBar = ktrade.get_currency_bars(PAIR,GRAN,1).iloc[-1].name
 
             #Checking to see if this bar has the same timestamp as the last bar
@@ -108,7 +107,7 @@ def Moving_Average_Cross_Algo():
                 #Setting old bar as current bar for future checks
                 oldBar = currBar
 
-                #Get important data
+                #Get important data NETWORK
                 accData = ktrade.get_account_data()
                 time.sleep(1)
                 instrumentData = ktrade.get_currency_info(PAIR)
@@ -124,7 +123,7 @@ def Moving_Average_Cross_Algo():
 
 
 
-                #Get dataframe of currency bars
+                #Get dataframe of currency bars NETWORK
                 bData = ktrade.get_currency_bars(PAIR,GRAN,30)
 
                 #Get current prices:
