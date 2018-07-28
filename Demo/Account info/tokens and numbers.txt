@@ -1,0 +1,9 @@
+id = kharicg
+
+Account Token:
+9b4745a1a1eeefa3df0012355bb8a493-ea04dc50356e0e4f8f685aa3fa5c9c43
+
+Account name: CrossBreak
+
+Account number: 101-001-5325021-002
+
