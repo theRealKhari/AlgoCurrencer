@@ -12,11 +12,11 @@ import oandapyV20.endpoints.trades as trades
 import oandapyV20.endpoints.orders as orders
 import configparser
 import time
-
+import os
 
 # Global Oanda Account Setup
 config = configparser.ConfigParser()
-config.read('../config/config.ini')
+config.read('C:\\Users\\Khari\\Documents\\Algo\\Resources\\config\\config.ini')
 accTOKEN = config['oanda']['api_key']
 accID = config['oanda']['account_id']
 api = API(accTOKEN)
