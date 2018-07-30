@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Trade test stuff">
+    <meta name="author" content="Caleb Anthony">
+    <link rel="manifest" href="/manifest.json">
+    <title>Trading graphing dashboard</title>
+    <!-- Bootstrap core CSS -->
+    <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+    <link href="/bootDir/dist/css/bootstrap.min.css" rel="stylesheet">
+	<link rel="stylesheet"
+	  href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.5.2/animate.min.css">
+    <!-- Custom styles for this template -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/4.4.0/bootbox.min.js"></script>
+    <link href="/styles.css" rel="stylesheet">
+	<script defer src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js"></script>
+	<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.js"></script>-->
+	<script defer src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+	<script defer src="/../node_modules/chart.js/dist/Chart.js"></script>
+	<script defer src="/../node_modules/chartjs-plugin-zoom/chartjs-plugin-zoom.js"></script>
+    <script defer src="tradeDashboard.js"></script> 
+  </head>
+<body>
+    <div class="container" style="border: solid black; width: auto">
+      <div class="well" style="outline:3px">
+       <div id="Chart" class="row">
+	<div class="card chartCard col-sm-6" id="mineChartCard">
+		<div class="" style="max-width:870px; max-height:600px" >
+		    <canvas id="chart1"></canvas>
+		</div>
+	</div>
+	<div class="card chartCard col-sm-6" id="mineChartCard">
+		<div class="" style="max-width:870px; max-height:600px; display: inline-block;" >
+		    <canvas id="chart2"></canvas>
+		</div>
+	</div>
+
+	</div>
+
+	<p> hello world </p>
+	<div id="dataHere"> here is  data</div>
+</body>
+</html>
+
