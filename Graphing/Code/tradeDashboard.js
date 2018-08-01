@@ -5,10 +5,22 @@
 //
 //
 //
-var _TradeDataArray = [];
-var _TradeDataTimes = [];
+var _Chart1Data = [];
+var _Chart1Times = [];
+var _Chart2Data = [];
+var _Chart2Times = [];
+var _Chart3Data = [];
+var _Chart3Times = [];
+var _Chart4Data = [];
+var _Chart4Times = [];
+
 var _TimeFormat = 'MM/DD/YYYY h:mm A';
-getData();
+var _MomentFormat = 'YYYY-MM-DD HH:mm:ss';
+
+window.onload = function() {
+	console.log("loadingData");
+	getData();
+}
 function getData(){
 	var ajax = new XMLHttpRequest();
 	ajax.addEventListener("load", function () {
@@ -23,30 +35,41 @@ function getData(){
 
 
 function printData(data){
-	//console.log("Got data");
+	console.log("Got data");
 	//console.log(data);
 	var jsonData = JSON.parse(data);
 	//console.log(jsonData);
-	createGraph(jsonData);
+	createGraphs(jsonData);
 }
 
-function createGraph(data){
-	//console.log("parsing Data",data);
+function createGraphs(data){
+	console.log("parsing Data",data);
 	//console.log(data.Close);
 	//console.log(data.Close,data.Close.length,data.Close[0])
 	for ( index in data.Close ) {
 		//console.log("I="+index,"v="+data.Close[index]);
-		let timeStamp = new Date(Number(index));
+		let timeStamp = String(new Date(Number(index)).toISOString()).split('.',5)[0];
+		//console.log(timeStamp);
+		newMoment = moment(timeStamp);
+		//console.log(newMoment);
+		timeStamp = newMoment.format(_MomentFormat);
 		//console.log(index,timeStamp);
 		let value = Number(data.Close[index]);
-		_TradeDataArray.push(value);
-		_TradeDataTimes.push(timeStamp);
+		_Chart1Data.push(value);
+		_Chart1Times.push(timeStamp)
 
 	}
+	//console.log(_Chart1Times);
+	//_Chart1Times = (_Chart1Times);
+	console.log(_Chart1Times);
 	var chart1  = document.getElementById('chart1').getContext('2d');
+	var chart2  = document.getElementById('chart2').getContext('2d');
+	var chart3  = document.getElementById('chart3').getContext('2d');
+	var chart4  = document.getElementById('chart4').getContext('2d');
+
 	var chart1Config = {
 	// The type of chart we want to create
-	type: 'line',
+	type: 'bar',
 	// The data for our dataset
 	data: {
 	 datasets: [{
@@ -55,43 +78,48 @@ function createGraph(data){
 	    backgroundColor: 'rgb(220, 219, 219)',
 	    borderColor: 'rgb(200, 199, 199)',
 	    fill: false,
-	    //yAxisID: "price",
-	    data: _TradeDataArray, //???G
+	    yAxisID: "closingPrices",
+	    data: _Chart1Data,
 	 },
 	 {
 	    type: 'bar',
-	    label: "Pces",
+	    label: "barPrice",
 	    backgroundColor: 'rgb(120, 219, 219)',
 	    borderColor: 'rgb(230, 10, 199)',
 	    fill: false,
-	    //yAxisID: "nada",
-	    data: _TradeDataArray, //???G
+	    yAxisID: "closingPrices",
+	    data: _Chart1Data, //???G
 	 }],
 	 
- 	    labels: _TradeDataTimes //get the date List, dateList in DB 		
+ 	    labels: _Chart1Times //get the date List, dateList in DB 		
 	},
 	// Configuration options go here
 	options: {
 		responsive: true,
 		title:{
 			display: true,
-			text: "Close Times???", //Classname goes here
+			text: "Closing Prices", //Classname goes here
 		},
-		events: [''],
+		//events: [],
+		//
+		tooltips: {
+			enabled: true,
+		},
 
 		scales: {
 			xAxes:[{
+				barThickness: 10,
 				type: "time",
 				time: {
 					//format: timeFormat,
-					min: _TradeDataTimes[0],
-					max: _TradeDataTimes[_TradeDataTimes.length-1],
+					min: _Chart1Times[0],
+					max: _Chart1Times[_Chart1Times.length-1],
 					tooltipFormat: _TimeFormat,
 				},
 				display: true,
 				scaleLabel: {
 					display: true,
-					labelString: 'Time'
+					labelString: 'Date'
 				},
 					ticks: {
 						maxRotation: 0,
@@ -101,7 +129,7 @@ function createGraph(data){
 				
 			}],
 			yAxes: [{
-				//id: "hps",
+				id: "closingPrices",
 				position: 'left',
 				type: "linear",
 				scaleLabel: {	
@@ -112,13 +140,23 @@ function createGraph(data){
 					//max: Number(6000),//Where secMax comes in
 					//min: Number(0)
 				}
+				},{
+				id: "closingBar",
+				position: 'left',
+				type: "linear",
+				scaleLabel: {	
+					display: false,
+					labelString: 'Closing Bar'
+				}
 				}]	
 			}
+		},
+		zoom: {
+			enabled: true,
 		}
 	    };
 
 	window.chart1 = new Chart(chart1,chart1Config);
-	window.chart1.update();
 	// Get custom places for updating individual charts
 	// (0) which dataste
 	// [5] which point index
@@ -130,6 +168,9 @@ function createGraph(data){
 	point.custom.radius = 5;
 	window.chart1.update();
 
+	//Set up custom Points
+
+	// Set up intervalss
 }
 
 
