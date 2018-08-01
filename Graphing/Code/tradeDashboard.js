@@ -96,15 +96,24 @@ function createGraphs(data){
 	// Configuration options go here
 	options: {
 		responsive: true,
+		maintainAspectRatio: false,
 		title:{
 			display: true,
 			text: "Closing Prices", //Classname goes here
 		},
+		layout: {
+			    padding: {
+				left: 5,
+				right: 5,
+				top: 10,
+				bottom: 10
+			    }
+			},
 		//events: [],
-		//
-		tooltips: {
+		
+		/*tooltips: {
 			enabled: true,
-		},
+		},*/
 
 		scales: {
 			xAxes:[{
@@ -123,38 +132,66 @@ function createGraphs(data){
 				},
 					ticks: {
 						maxRotation: 0,
-						autoSkip: false,
+						//autoSkip: false,
 						autoSkipPadding: 2
 					}
 				
 			}],
 			yAxes: [{
-				id: "closingPrices",
-				position: 'left',
-				type: "linear",
-				scaleLabel: {	
-					display: true,
-					labelString: 'Price'
-				},
-				ticks: {
-					//max: Number(6000),//Where secMax comes in
-					//min: Number(0)
-				}
+					id: "closingPrices",
+					position: 'left',
+					type: "linear",
+					scaleLabel: {	
+						display: true,
+						labelString: 'Price'
+					},
+					ticks: {
+						//max: Number(2),//Where secMax comes in
+						//min: Number(0)
+					}
 				},{
-				id: "closingBar",
-				position: 'left',
-				type: "linear",
-				scaleLabel: {	
+					id: "closingBar",
+					type: "linear",
 					display: false,
-					labelString: 'Closing Bar'
-				}
+					scaleLabel: {	
+						display: false,
+						labelString: 'Closing Bar'
+					}
 				}]	
+			},
+			zoom: {
+				enabled: true,
+				//drag: false,
+				mode: 'x',
+				limits: {
+					max: 30,
+					min: 0.5
+				}
+			},
+			pan: {
+				// Boolean to enable panning
+				enabled: true,
+				// Panning directions. Remove the appropriate direction to disable 
+				// Eg. 'y' would only allow panning in the y direction
+				mode: 'xy',
+				rangeMin: {
+					// Format of min pan range depends on scale type
+					x: null,
+					y: null
+				},
+				rangeMax: {
+					// Format of max pan range depends on scale type
+					x: null,
+					y: null
+				}
+			},
+			elements: {
+				line: {
+					tension:0,
+				}
 			}
-		},
-		zoom: {
-			enabled: true,
 		}
-	    };
+	};
 
 	window.chart1 = new Chart(chart1,chart1Config);
 	// Get custom places for updating individual charts
