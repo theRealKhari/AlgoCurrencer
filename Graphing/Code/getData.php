@@ -1,6 +1,6 @@
 <?php
 $pwd = getcwd();
-$dataFile = "../test_data/eurusd1h.txt";
+$dataFile = "../test_data/eurusdh1_WithBuySellSignal.txt";
 $file = fopen($dataFile,'r');
 $data = fread($file,filesize($dataFile));
 fclose($file);
