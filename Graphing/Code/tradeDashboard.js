@@ -46,6 +46,14 @@ function createGraphs(data){
 	console.log("parsing Data",data);
 	//console.log(data.Close);
 	//console.log(data.Close,data.Close.length,data.Close[0])
+	// parse data here and determine where they will go on their respective graphs
+	//
+	
+	setupChart1(data);
+	//setupChart2(data);
+}
+
+function setupChart1(data){
 	for ( index in data.Close ) {
 		//console.log("I="+index,"v="+data.Close[index]);
 		let timeStamp = String(new Date(Number(index)).toISOString()).split('.',5)[0];
@@ -61,11 +69,15 @@ function createGraphs(data){
 	}
 	//console.log(_Chart1Times);
 	//_Chart1Times = (_Chart1Times);
-	console.log(_Chart1Times);
+	//console.log(_Chart1Times);
 	var chart1  = document.getElementById('chart1').getContext('2d');
 	var chart2  = document.getElementById('chart2').getContext('2d');
 	var chart3  = document.getElementById('chart3').getContext('2d');
 	var chart4  = document.getElementById('chart4').getContext('2d');
+
+	chart1.canvas.width = 1000;	
+	chart1.canvas.height = 400;	
+
 
 	var chart1Config = {
 	// The type of chart we want to create
@@ -96,17 +108,16 @@ function createGraphs(data){
 	// Configuration options go here
 	options: {
 		responsive: true,
-		maintainAspectRatio: false,
 		title:{
 			display: true,
 			text: "Closing Prices", //Classname goes here
 		},
 		layout: {
 			    padding: {
-				left: 5,
-				right: 5,
-				top: 10,
-				bottom: 10
+				left: 0,
+				right: 0,
+				top: 0,
+				bottom: 0
 			    }
 			},
 		//events: [],
@@ -158,38 +169,38 @@ function createGraphs(data){
 						labelString: 'Closing Bar'
 					}
 				}]	
-			},
-			zoom: {
-				enabled: true,
-				//drag: false,
-				mode: 'x',
-				limits: {
-					max: 30,
-					min: 0.5
-				}
-			},
-			pan: {
-				// Boolean to enable panning
-				enabled: true,
-				// Panning directions. Remove the appropriate direction to disable 
-				// Eg. 'y' would only allow panning in the y direction
-				mode: 'xy',
-				rangeMin: {
-					// Format of min pan range depends on scale type
-					x: null,
-					y: null
-				},
-				rangeMax: {
-					// Format of max pan range depends on scale type
-					x: null,
-					y: null
-				}
-			},
-			elements: {
-				line: {
-					tension:0,
-				}
+		},
+		zoom: {
+			enabled: true,
+			//drag: false,
+			mode: 'x',
+			limits: {
+				max: 30,
+				min: 0.5
 			}
+		},
+		pan: {
+			// Boolean to enable panning
+			enabled: true,
+			// Panning directions. Remove the appropriate direction to disable 
+			// Eg. 'y' would only allow panning in the y direction
+			mode: 'xy',
+			rangeMin: {
+				// Format of min pan range depends on scale type
+				x: null,
+				y: null
+			},
+			rangeMax: {
+				// Format of max pan range depends on scale type
+				x: null,
+				y: null
+			}
+		},
+		elements: {
+			line: {
+				tension:0,
+			}
+		}
 		}
 	};
 
@@ -201,13 +212,14 @@ function createGraphs(data){
 	//console.log(point);
 	point.custom = point.custom || {};
 	point.custom.borderColor = "green"
-	point.custom.borderWidth = 8;
+	point.custom.borderWidth = 4;
 	point.custom.radius = 5;
 	window.chart1.update();
 
 	//Set up custom Points
 
 	// Set up intervalss
+
 }
 
 
