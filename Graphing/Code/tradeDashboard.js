@@ -14,6 +14,7 @@ var _Chart3Data = [];
 var _Chart3Times = [];
 var _Chart4Data = [];
 var _Chart4Times = [];
+var _Chart1Formats = ['line'];
 
 // Color setup
 window.chart1Colors = [
@@ -93,11 +94,12 @@ function createGraphs(data){
 	// parse data here and determine where they will go on their respective graphs
 	//
 	
-	setupChart1(data);
+	setupChart1(data,_Chart1Formats);
 	//setupChart2(data);
 }
 
-function setupChart1(data){
+
+function setupChart1(data,chartFormats){
 	var ohlcData = [];
 	var tradeData = [];
 	var openData = [];
@@ -139,60 +141,62 @@ function setupChart1(data){
 		};
 		ohlcData.push(ohlcVal);
 	}
-	//console.log(_Chart1Times);
-	//_Chart1Times = (_Chart1Times);
-	//console.log(_Chart1Times);
+	var formatData = [];
+	var selectedData = undefined;
+	if (chartFormats[0] == 'candlestick'){
+		formatData = [ohlcData];
+	}else {
+		formatData = [openData];
+	}
+
+	// format and draw chart(s)
 	var chartCanvas  = document.getElementById('chart1').getContext('2d');
+	chartCanvas.canvas.width = 1000;	
+	chartCanvas.canvas.height = 400;	
+	var chart1Config = getChartConfig(formatData,dataTimeline,chartFormats);
+	window.chart1 = new Chart(chartCanvas,chart1Config);
+	window.chart1.update();
 	//var chart2  = document.getElementById('chart2').getContext('2d');
 	//var chart3  = document.getElementById('chart3').getContext('2d');
 	//var chart4  = document.getElementById('chart4').getContext('2d');
+	//TODO: FIGURE OUT HOW TO Implement dynamic stuff
 
-	chartCanvas.canvas.width = 1000;	
-	chartCanvas.canvas.height = 400;	
-
-	// Params: (data,timeline,chartFormat)
-	// data: array of values (so far h or l or o or c or ohlc{} or array of arrays of data. to support multi data graphs [[openData],[closeData]]
-	// timeline: array of times []
-	// ChartFormat: list of strings of desired formats]
-	var chart1Config = getChartConfig([ohlcData],dataTimeline,["candlestick"]);
-	console.log(" Got config ", chart1Config);
-	window.chart1 = new Chart(chart1,chart1Config);
-	// Get custom places for updating individual charts
-	// (0) which dataste
-	// [5] which point index
-	window.chart1.update();
-	//var point = window.chart1.getDatasetMeta(0).data[5];
-	//console.log(point);
-	//point.custom = point.custom || {};
-	//point.custom.borderColor = "green"
-	//point.custom.borderWidth = 4;
-	//point.custom.radius = 5;
-	//window.chart1.update();
-
-		//Set up custom Points
-
-		// Set up intervalss
-
-	window.chart1 = new Chart(chartCanvas,chart1Config);
-	window.chart1.update();
-	// Get custom places for updating individual charts
-	// (0) which datassIDt
-	// [5] which point index
-	//var point = window.chart1.getDatasetMeta(0).data[1];
-	//console.log(point);
-	//point.custom = point.custom || {};
-	//point.custom.borderColor = "green"
-	//point.custom.borderWidth = 4;
-	//point.custom.radius = 5;
-	window.chart1.update();
 
 	//Set up custom Points
+	setCustomPoints(tradeData);
 
-	// Set up intervalss
+	//TODO// Set up update intervalss
 
 }
 
+// Get custom places for updating individual charts
+// Takes data from tradeData and parses it:
+// 1 = buy
+// -1 = sell
+// 0 = nothing
+function setCustomPoints(data){
+	for (var index = 0; index < data.length; index ++){
+		var point = window.chart1.getDatasetMeta(0).data[index];
+		var trade = data[index];
+		var color = "black";
+		if (trade == 1){
+			color = "green";
+		}else if( trade == -1){
+			color = "red";
+		}
+		point.custom = point.custom || {};
+		point.custom.borderColor = color;
+		point.custom.borderWidth = 2;
+		point.custom.radius = 5;
+	}
+	window.chart1.update();
+}
+
 //This is the real shiz
+// Params for getCha: (data,timeline,chartFormat)
+// data: array of values (so far h or l or o or c or ohlc{} or array of arrays of data. to support multi data graphs [[openData],[closeData]]
+// timeline: array of times []
+// ChartFormat: list of strings of desired formats]
 function getChartConfig(data,dataTimeline,chartTypes){
 	var chartTitle = "Test Chart Title Dnamic update";
 	//console.log("getting data for",data,chartTypes)
@@ -206,10 +210,36 @@ function getChartConfig(data,dataTimeline,chartTypes){
 	if (config.type == "candlestick"){
 		config = {
 			type: 'candlestick',
-			data: {datasets:[ ]}
+			data: {datasets:[ ]},
+			options: {
+				tooltips: {
+					position: 'nearest',
+					mode: 'index',
+				},
+				zoom: {
+					enabled: true,
+					//drag: false,
+					mode: 'x',
+					limits: {
+						max: 20,
+						min: 1
+					}
+				},
+				pan: {
+					enabled: true,
+					mode: 'xy',
+					rangeMin: {
+						x: null,
+						y: null
+					},
+					rangeMax: {
+						x: null,
+						y: null
+					}
+				},
+			},
 		};
 		var dataSet = getDataSet(config.type,data[0]);
-		console.log("data=",dataSet);
 		config.data.datasets.push(dataSet);
 	}else {
 		// Resets config to keep from confusion			
@@ -368,6 +398,88 @@ function getConfigTemplate(chartTitle,dataTimeline) {
 }
 
 
+function changeType(){ // Read which tchar it it is by passing in chartnum or id as param
+	var newType = formatSelect.value;
+	console.log("changing chat type",newType);
+	_Chart1Formats = [newType];
+	window.chart1.destroy();
+	updateData();
+
+}
+function updateData(){
+        var ajax = new XMLHttpRequest();
+        ajax.addEventListener("load", function () {
+                var data = this.response;
+                var jsonData = JSON.parse(data);
+                updateGraphs(jsonData);
+        });
+        ajax.open("POST", "./getData.php");
+        ajax.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        var funct = "Nothing";
+        ajax.send("funct="+funct);
+}
+
+function updateGraphs(data){
+	console.log("parsing Data",data);
+        updateChart(data,_Chart1Formats);
+        // Will need to add parameter to select which chart
+}
+function updateChart(data,chartFormats){
+        //var chartCanvas  = document.getElementById('chart1').getContext('2d');
+        var ohlcData = [];
+        var tradeData = [];
+        var openData = [];
+        var highData = [];
+        var lowData = [];
+        var closeData = [];
+
+        var dataTimeline = [];
+        for ( var index in data.Close ) { // Basically use index as an index to access any part of the object
+                //Timeline setup
+                let timeStamp = String(new Date(Number(index)).toISOString()).split('.',5)[0];
+                let newMoment = moment(timeStamp);
+                timeStamp = newMoment.format(_MomentFormat);
+                dataTimeline.push(timeStamp)
+
+                // OpeningData setup
+                let oValue = Number(data.Open[index]);
+                openData.push(oValue);
+                // highData setup
+                let hValue = Number(data.High[index]);
+                highData.push(hValue);
+                // lowData setup
+                let lValue = Number(data.Low[index]);
+                lowData.push(lValue);
+                // ClosingData Setup
+                let cValue = Number(data.Close[index]);
+                closeData.push(cValue);
+                // Trading Data Set up
+                let tValue = Number(data.Trade[index]);
+                tradeData.push(tValue);
+                // ohlcData setup (candlestick)
+                let ohlcVal = {
+                        o: oValue,
+                        h: hValue,
+                        l: lValue,
+                        c: cValue,
+                        t: timeStamp
+                };
+                ohlcData.push(ohlcVal);
+        }
+		var formatData = [];
+        var selectedData = undefined;
+        if (chartFormats[0] == 'candlestick'){
+                formatData = [ohlcData];
+        }else {
+                formatData = [openData];
+        }
+        var chartConfig = getChartConfig(formatData,dataTimeline,chartFormats);
+        console.log(" Got update fig ", chartConfig);
+	var chartCanvas  = document.getElementById('chart1').getContext('2d');
+	window.chart1 = new Chart(chartCanvas,chartConfig);
+        
+	setCustomPoints(tradeData);
+}
 
 function refreshChart(){
 //	console.log("Updating",_TimelineArr,_HpsData);
