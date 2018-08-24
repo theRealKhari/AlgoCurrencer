@@ -1,0 +1,62 @@
+Overall GamePlan for this project.
+
+Phase 1: --ALGORITHM WORKFLOW FIRST PASS--
+	"""
+	Define a working workflow that will place trades on the network as well as output a live graph.
+	"""
+	$GOALS
+		1. Make the "SAR scraper" algorithm is able to run for a full week on EUR_USD with no issues.
+		2. See that a real-time plot is created graphing these items:
+			a. EUR_USD price.
+			b. Parabolic SAR graph.
+			c. Entry order location. (Low priority)
+			d. Stop-loss location.(Low priority)
+			e. Take-profit location. (Low priority)
+		3. See that a real-time dashboard displays this data:
+			a. Trade Status (Planning to buy, Planning to sell)
+			b. Account Size
+			c. Trade data (Unrealized Profit/Loss)
+			d. Account % growth since algorithm started (Low priority)
+		1. Add indicator signal functions like "crossover detect" (Low priority)
+	"""
+	Once these goals are achieved. build upon and start fleshing out better strategies. Keep this backburning while working on later Phases as well.  
+	""" 
+
+Phase 2: --REDEFINE WORKFLOW AND BUILD BACKTESTING ENGINE--
+	"""
+	Rewrite everything to be more efficient and robust using objects as well as build a backtesting engine to work with it. 
+	32 bit.
+	Private Repo
+	"""
+	$GOALS
+		1. Give it a new name: RainyDay
+		2. Create these sets of classes to make it easier to program.
+			b. BrokerageClass: (A class that will hold all brokerage specific data. Making it easy to add different brokerage support in the future. (Backtesting will be a type of Brokerage))
+			a. AccountClass: (A class that will hold all account data [separate method for updating that class with data for network])
+			b. NewBarClass: (A class that has methods for generating price data along with ticks. [can get ticks from network or generate them manually for backtesting])
+			c. PlotClass: (A class for plotting data on a chart or graph. [for local use])
+			d. SchedulerClass: (A class for making date time objects easy to work with, [Allow things like, "Every Monday" etc.]
+			e. MoneyManageClass: (A class for money management operations. Can hold trade sizes, take profits, stoplosses and more. And allows easy dynamic change in a strategy) 
+		3. Create these core functions:
+			a. RainyDayAlgo: (The overall function that when run, It will run your algorithim. All your code for each strategy inside here.) 
+			b. RainyDayLiveEngine: (This function is technically what is actually run, but not seen. Here things like Initialize, On every bar, etc, are run in the background. hiding clutter) 
+				1. Make a GUI for this function that allows you to pick and choose algorithms and run them. 
+			c. RainyDayBackTestEngine: (This function will run a backtest and allows extra parameters to do so
+		4. Give simple GUI for choosing written algorithms and charting abilites.
+		5. Add more features like Walk-Forward backtesting and etc as time goes on (Low priority)
+	"""
+	Once the core live and backtesting engine are written and working. (at a level where an algorithm can run live for a full week on EUR_USD and backtest properly) Backburn this as you work on the next Phase.
+	Still continue to build algorithms using this system instead. 
+	"""
+
+Phase 3: --MACHINE LEARNING ENGINE--
+	"""
+	Start Incorporating Machine learning into algorithms. 
+	Wrap existing functions and classes around a deep learning toolkit
+	"""
+	$GOALS
+		1. TBD!
+	"""
+	Final Phase. Slowly Work on this as you learn more after Phase 2 nears completion.
+	"""
+
