@@ -1,14 +1,28 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <h1 class="text-center">The Council of fools</h1>
+{{test_index}}
+<br>
+    <h1 class="text-center">The Council of Fools</h1>	
 
+	<div id='test_data_chart' class='chart'></div>
 
-    <a class="float-right" href="/login"><button>Login</button></a>
+	<script>
+		var prediction_arr = "{{test_predict}}";
+		prediction_arr = JSON.parse(prediction_arr);
+		var test_data=[1, 86, 168, 281, 303, 365];
 
-    <br>
-    <br>
+		// Chart test here:
+		d3.select(".chart")
+		  .selectAll("div")
+		  .data(prediction_arr)
+		  .enter()
+		  .append("div")
+		  .style("width", function(d) {return d*100 + "px"; })
+		  .text(function(d) {return d; });
 
-    <div style="font-size:30px" class="text-center jumbotron"> Prepare for autism</div>
+		
+	</script>
+
 {% endblock %}
 
