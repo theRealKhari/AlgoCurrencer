@@ -1,28 +1,481 @@
 {% extends 'base.html' %}
 
 {% block content %}
-{{test_index}}
 <br>
-    <h1 class="text-center">The Council of Fools</h1>	
+<style>
 
-	<div id='test_data_chart' class='chart'></div>
+.posBar {
+	fill: #0B61A4;
+	stroke-width: 1px;
+	}
+.negBar {
+	fill: #FF4900;
+	stroke-width: 1px;
+	}
 
+.axis path,
+.axis line {
+    stroke: white;
+    stroke-opacity: 0.7;
+    shape-rendering: geometricPrecision ;
+}
+
+.axis text {
+    font-family: sans-serif;
+    font-size: 11px;
+}
+
+.buyArrow{
+	fill: green;
+	stroke: black;
+	stroke-width: 0.5px;
+}
+.sellArrow{
+	fill: red;
+	stroke: black;
+	stroke-width: 0.5px;
+}
+
+.chart text {
+  fill: white;
+  font: 10px sans-serif;
+  text-anchor: end;
+}
+</style>
+
+	<div class=container chart_holder>
+		<h2> The council will decide your fate </h2>
+		<div id="chart1"> </div>
+		<br>
+		<div id="chart2"> </div>
+		
+	{# raw #}
 	<script>
-		var prediction_arr = "{{test_predict}}";
-		prediction_arr = JSON.parse(prediction_arr);
-		var test_data=[1, 86, 168, 281, 303, 365];
+		// Helper Functions ---------------------
+		var datetime = {'datetime':function(year,month,day,hour,minute){
+				newDay =  new Date(year,month,day,hour,minute);
+				//console.log(newDay);
+				return newDay;
+				}
+		};
 
-		// Chart test here:
-		d3.select(".chart")
-		  .selectAll("div")
-		  .data(prediction_arr)
-		  .enter()
-		  .append("div")
-		  .style("width", function(d) {return d*100 + "px"; })
-		  .text(function(d) {return d; });
+		function epochToDate(epochStr){
+			var epochInt= parseInt(epochStr,10);
+			converted_date = new Date(epochInt);
+			return converted_date;
+		}
+
+		function addDays(date, days) {
+		  var result = new Date(date);
+		  result.setDate(result.getDate() + days);
+		  return result;
+		}
+
+		function addHours(date, hours) {
+		  var result = new Date(date);
+		  result = new Date(result.getTime() + (hours*60*60000));
+		  return result;
+		}
+		
+		function addMinutes(date, minutes) {
+		  var result = new Date(date);
+		  result = new Date(result.getTime() + (minutes*60000));
+		  return result;
+		}
+
+		function increaseXScale(ammount,interval){
+			console.lg("increasing xScale by ",ammount,interval)
+		}
+
+
+		///-----------------------------
+		var graph_chunk = {{graph_chunk|safe}};
+		console.log("Chunk=",graph_chunk);
+		// Get data ---
+		//var graph_data= {{graph_data|safe}};
+		//console.log(graph_data)
+		var test_data=graph_chunk;        //	[10, 20, 18, 28, 33, 35];
+		// Chart setup
+		
+	
+		var num_bars = {{chunk_size|int}};
+		var interval = "{{interval|string}}";
+		var currency = "{{currency|string}}";
+		var dataT = "{{dataT|string}}";
+		console.log(num_bars,interval,currency,dataT);
+		var ch_width = 1000;
+		var ch_height = 400;
+		var ch_marginLeft = 30;
+		var ch_marginRight = 30;
+		var ch_marginTop = 20;
+		var ch_marginBottom = 20;
+		var bar_width =20;
+		var bar_padding = 3;
+		if (num_bars >= 45) {
+			bar_width =10;
+			bar_padding = 2;
+		} else if (num_bars >= 90){
+			bar_widh = 5;
+			bar_padding = 1;
+		}
+		var transform = d3.zoomIdentity;
+		var yZoom = 0.001;
+		var padding = 30;
+		var x1Zoom = 30;
+		var x2Zoom = 30;
+		var dynamicElements = [];
+
+		var start_date = epochToDate(test_data[0]['time'])
+		var end_date = epochToDate(test_data[test_data.length-1]['time'])
+		var xExtent = d3.extent(test_data, function(d){return epochToDate(d['time']);});
+		var yExtent = d3.extent(test_data, function(d){return d['High'];});
+		var start_pad;
+		var end_pad;
+		
+		if (interval == "D"){
+			start_pad = addDays(start_date,-x1Zoom)//Note the subtraction
+			end_pad = addDays(end_date,x2Zoom); 
+		}
+		
+		if (interval == "H1"){
+			start_pad = addHours(start_date,-x1Zoom)//Note the subtraction
+			end_pad = addHours(end_date,x2Zoom); 
+		}
+		if (interval == "M5"){
+			start_pad = addMinutes(start_date,-x1Zoom)//Note the subtraction
+			end_pad = addMinutes(end_date,x2Zoom); 
+				
+		}
+		console.log(start_pad,end_pad);
+		var yScale = d3.scaleLinear()
+				.domain([d3.max(test_data, function(d){return d['High']})+yZoom,d3.min(test_data, function(d) {return d['Low']})-yZoom])
+				.range([0,ch_height]);
+		
+			
+		var xScale = d3.scaleLinear()
+				.domain([0,test_data.length])
+				.range([ch_marginLeft,bar_width*test_data.length]);
+		
+		var xAxisScale = d3.scaleTime()
+		.domain([start_pad,end_pad])
+		.range([padding+20,ch_width]);
+		//.range([padding +bar_width + bar_padding, (ch_width-(bar_width+bar_padding*(test_data.length-(x1Zoom+x2Zoom))))]);
+		
+
+		var chart_area = d3.select("#chart1").append("svg")
+			.attr('width', ch_width + ch_marginLeft - ch_marginRight)
+			.attr('height',ch_height - ch_marginTop - ch_marginBottom)
+			.style("background-color", 'LightGray');
+			var interactive_chart = chart_area.append('g')
+		    	.attr("transform", "translate(" + ch_marginLeft + ","+ch_marginTop + ")")
+				//testChart.attr("width", ch_width)
+				//.attr("height", ch_height)
+				//.attr("background-color","pink");
+
+		/*
+		var  testCanvas  = d3.select('#chart1').append('canvas')
+		    .attr('width', ch_width - 1)
+		    .attr('height', ch_height - 1)
+		    .style('z-index', 1)
+		    .style("transform", "translate(" + (ch_marginLeft + 1) +
+			"px" + "," + (ch_marginTop + 1) + "px" + ")");
+		*/
+		//var context = testChart.node().getContext('2d');
+
+		// Axis creation
+		/*
+		var xAxis = d3.axisBottom().scale(xAxisScale)
+				.tickSizeInner([-ch_height])		
+				.tickSizeOuter(0)
+				.tickPadding(10);
+				//.ticks(9);
+		
+		gX = interactive_chart.append('g')
+		.attr("transform", "translate("+(0)+"," + (ch_height-85) + ")")
+		.attr("class", "axis")
+		.call(xAxis);
+		*/		
+		var xAxis = d3.axisBottom(xAxisScale)
+				.tickSizeInner([-ch_height])		
+				.tickSizeOuter(0);
+		var xAxis2 = d3.axisBottom(xAxisScale)
+				.tickSizeOuter(3);
+				
+
+		var yAxis =  d3.axisLeft().scale(yScale)
+				.tickSizeInner([-ch_width])		
+				.tickSizeOuter(0)
+				.tickPadding(10)
+				.ticks(9);
+		var yAxis2 =  d3.axisLeft().scale(yScale)
+				.tickSizeOuter(0)
+				.tickPadding(10)
+				.ticks(9);
+		/*
+		gY = interactive_chart.append('g')
+		.attr("transform", "translate("+(ch_marginLeft+20)+","+-85+")")
+		.attr("class", "axis")
+		.call(yAxis);
+		*/
+
+		var yGroup = interactive_chart.append("g")
+			     .attr("class", "axis")
+			     .attr("transform", "translate("+(ch_marginLeft+20)+","+-85+")");
+		var xGroup = interactive_chart.append("g")
+			     .attr("class", "axis")
+			     .attr("transform", "translate(0," + (ch_height-85) + ")");
+
+		// create zooming/panning behaviour
+		var zoomBehaviour = d3.zoom()		
+		.scaleExtent([0, 9])
+		.translateExtent([[-ch_width, -100], [3*ch_width, ch_height + 100]])
+		.on("zoom",zoomed)
+
+		var zoomRect = chart_area.append("rect")
+		    .attr("width", ch_width)
+		    .attr("height", ch_height)
+		    .attr("fill", "none")
+		    .attr("pointer-events", "all")
+		    .call(zoomBehaviour);
+	    	
+
+		/*
+		interactive_chart.append("clipPath")
+		    .attr("id", "clip")
+		    .append("rect")
+		    .attr("width", ch_width + 100)
+		    .attr("height", ch_height + 100);
+		*/
+		function zoomed() {
+			//console.log(d3.event.transform,x1Zoom,x2Zoom)
+			var xz = d3.event.transform.rescaleX(xAxisScale)
+			var yz = d3.event.transform.rescaleY(yScale)
+			xGroup.call(xAxis.scale(xz));
+			yGroup.call(yAxis.scale(yz));
+			
+
+			dynamicElements.forEach(function(element){
+				element.attr("transform", d3.event.transform);
+
+			 });
+			// Axis movement
+			gX.call(xAxis2.scale(d3.event.transform.rescaleX(xAxisScale)));
+			gY.call(yAxis2.scale(d3.event.transform.rescaleY(yScale)));
+			
+		}
+
+		function dragged(d) {
+		  	console.log("drag");
+			//d3.select(this).attr("x", d.x = d3.event.x).attr("y", d.y = d3.event.y);
+		}
+		 
+
+		/*	
+		//Arrow predictionIndecators
+		var advisorArrows = testChart.selectAll(".advisors")
+		 .data(test_data)
+		 .enter()
+		 .append("text")
+		 .text(function(d) {
+			if (d['prediction'] == 1){
+				return "↑";
+			} else if (d['prediction'] == -1){
+				return "↓";
+			}
+			 else {return "";}
+		})
+		 .attr("x", function(d, i) {
+			return xAxisScale(epochToDate(d['time']))+ (bar_width/2) ;
+			return xAxisScale(epochToDate(d['time']))+(i*bar_padding) + (bar_width/2)+ padding-10;
+		   })
+		 .attr("y", function(d) {
+			if (d['prediction'] == 1){
+				return yScale(d['High']) - padding;
+			} else if (d['prediction'] == -1){
+				return yScale(d['Low']) + padding;
+			}
+			 else {return "";}
+			return yScale(d['Low']);
+		   })
+		 .attr("font-family", "sans-serif")
+		 .attr("font-size", "32px")
+		 .attr("text-anchor", "middle")
+		 .attr("class", function(d,i){
+			if (d['prediction'] == 1){
+				return "buyArrow";
+			} else if (d['prediction'] == -1){
+				return "sellArrow";
+			}
+			 else {return "";}
+		 });
+		 dynamicElements.push(advisorArrows);
+		*/
+	        drawData();	
+		function drawData(){
+			// High and Lows data wickets
+			var HL_lines = interactive_chart.selectAll(".wickets").data(test_data).enter().append("line");
+			HL_lines.attr("stroke","black")
+			.attr("x1", function(d,i){
+					return xAxisScale(epochToDate(d['time']));
+					return xAxisScale(epochToDate(d['time']))+(i*bar_padding) + (bar_width/2)+ padding-10;;
+					//return xScale(i)+ (i*bar_padding)+ (bar_width/2);
+					//return ((i*bar_width) + i*bar_padding + (bar_width/2));
+			})
+			.attr("x2", function(d,i){
+					return xAxisScale(epochToDate(d['time']));
+					return xAxisScale(epochToDate(d['time']))+(i*bar_padding) + (bar_width/2)+ padding-10;;
+					//return xScale(i)+ (i*bar_padding)+ (bar_width/2);
+					//return ((i*bar_width) + i*bar_padding + (bar_width/2));
+			})
+			.attr("y1", function(d,i){
+					var yPos
+					if (d['Close'] > d['Open']){
+						yPos = d['High'];
+					}else if (d['Close'] < d['Open']){
+						yPos = d['High'];
+					}
+					else {
+						yPos = d['High'];
+					}
+				return ( yScale(yPos));
+			})
+			.attr("y2", function(d,i){
+					var yPos
+					if (d['Close'] > d['Open']){
+						yPos = d['Low'];
+					}else if (d['Close'] < d['Open']){
+						yPos = d['Low'];
+					}
+					else {
+						yPos = d['Low'];
+					}
+				return ( yScale(yPos));
+			})
+			 dynamicElements.push(HL_lines);
+
+
+	// Open and Close Bars
+			var OC_rects = interactive_chart.selectAll("rect").data(test_data).enter().append("rect");
+			OC_rects.attr("x", function(d,i) {
+						return xAxisScale(epochToDate(d['time'])) - (bar_width/2);
+						return xAxisScale(epochToDate(d['time'])) + (i*bar_padding)+ padding-10;
+						//return xScale(i)+ (i*bar_padding);
+						//return (i*bar_width) + i*bar_padding;
+			})
+			.attr("y", function(d,i){
+					yPos = 0;
+					// up
+					if (d['Close'] > d['Open']){
+						height= d['Close'] - d['Open'];				
+						yPos = d['Open']+height;
+					}else if (d['Close'] < d['Open']){
+						height= d['Close'] - d['Open'];				
+						yPos=d['Open'];				
+					}
+					else {
+						yPos=d['Open'];
+					}
+				return ( yScale(yPos));
+			})
+			 .attr("clip-path", "url(#clip)")
+			.attr("width",bar_width)
+			.attr("height", function(d,i){
+					var yDist;
+						//up
+					if (d['Close'] > d['Open']){
+						yDist= yScale(d['Close']) - yScale(d['Open']);
+						//console.log("going up", yDist, d['Close'], d['Open']) 
+					}else if (d['Close'] < d['Open']){
+						yDist = yScale(d['Open']) - yScale(d['Close']);				
+						//console.log("going down", yDist, d['Open'], d['Close']) 
+					}
+					else {
+						//console.log("Same Open and Close!");
+						yDist = 1;
+					}
+					return (Math.abs(yDist));
+			})
+			.attr("class",function(d,i) {
+				className = "neutBar";
+				// If it Closes Higher, green bar
+				if (d['Close'] > d['Open']){
+					className = "posBar";				
+				}
+				// If it Closes Lower, geen bar
+				if (d['Close'] < d['Open']){
+					className = "negBar";				
+							}
+				return className;
+			})
+			.attr("stroke", function(d,i){
+					return "black";
+					
+					//Unneeded but will stay in case 
+					var strokeColor = "black";
+						//up
+					if (d['prediction'] == 1){
+						strokeColor = "#3E629F"
+					}else if (d['prediction'] == -1){
+						strokeColor = "#BC9144"
+					}
+					else {
+
+					}
+					return strokeColor;
+					
+			});
+			dynamicElements.push(OC_rects)
+		}
+		
+       		var left_border = interactive_chart.append("line")
+		.attr("x1",10)
+		.attr("x2",10)
+		.attr("y1",-40)
+		.attr("y2",ch_height)
+		.style("fill","black")
+		.style("stroke","lightgrey")
+		.style("stroke-width",80);
+       		
+       		var bottom_border = interactive_chart.append("line")
+		.attr("x1",0)
+		.attr("x2",ch_width)
+		.attr("y1",ch_height-45)
+		.attr("y2",ch_height-45)
+		.style("fill","black")
+		.style("stroke","lightgrey")
+		.style("stroke-width",80);
+		
+       		gX = interactive_chart.append('g')
+		.attr("transform", "translate("+(0)+"," + (ch_height-91) + ")")
+		.attr("class", "axis")
+		.call(xAxis2);
+		
+       		gY = interactive_chart.append('g')
+		.attr("transform", "translate("+(ch_marginLeft+20)+","+-85+")")
+		.attr("class", "axis")
+		.call(yAxis2);
+		zoomRect.call(zoomBehaviour.transform, d3.zoomIdentity);
+		
+
+
+
 
 		
-	</script>
+		
+		// Draw line
+		var mid_line = chart_area.append("line")
+		.attr("x1",0)
+		.attr("x2",ch_width)
+		.attr("y1",1)
+		.attr("y2",1)
+		.attr("stroke","black");
 
+		
+		
+	</script>
+	<button type='button' class="btn btn-success btn-block" onclick="window.location.href='{{ url_for( 'council_results')}}';">View Council Results</button>
+	</div>
+	{# endraw #}
+	
 {% endblock %}
 
