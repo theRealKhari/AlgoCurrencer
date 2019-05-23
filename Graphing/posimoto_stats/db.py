@@ -3,7 +3,7 @@ import mysql.connector
 import pandas
 from sqlalchemy import create_engine
 import sqlalchemy
-info = {'user':'root','pswd':'Toonlink1'}
+info = {'user':Redacted,'pswd':Redacted}
 user = info['user']
 password = info['pswd']
 engine = create_engine('mysql+mysqlconnector://'+user+':'+password+'@localhost:3306/counselDB', echo=False)
