@@ -42,6 +42,18 @@ def get_ohlc_json():
     g.cursor.execute(query)
     return g.cursor.fetchall()
 
+def get_all_currency_pairs():
+    query = "select pair from active_currency_pairs"
+    g.cursor.execute(query)
+    return g.cursor.fetchall()
+
+def get_all_active_intervals():
+    query = "select name from active_intervals"
+    g.cursor.execute(query)
+    return g.cursor.fetchall()
+
+
+
 
 
 def get_table_panda(table_name):
