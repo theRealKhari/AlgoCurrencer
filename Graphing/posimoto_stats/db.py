@@ -55,9 +55,12 @@ def get_all_active_intervals():
 
 
 
-
 def get_table_panda(table_name):
     with engine.connect() as conn, conn.begin():
         data = pandas.read_sql("select * from "+table_name,conn)
     return data
 
+def get_latest_bar(table_name):
+    with engine.connect() as conn, conn.begin():
+        data = pandas.read_sql("select * from "+table_name,conn)
+    return data.tail(1)

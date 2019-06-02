@@ -157,6 +157,8 @@
 				 <input type="range" min="10" max="300" value="50" step="10" style="display: inline" class="slider" name='slider' id="num_bar_slider_1"> <span id="num_bar_lable"> Number of Bars: <span id="num_bar_val_1">50</span></span>
 			</div>
 			<input type="button" class='btn btn-primary' onclick="reload_chart('chart1')" name="submit_button" value="Load">
+			<br>
+			<br>
 		</form>
 		
 	{# raw #}
@@ -196,21 +198,38 @@
 		console.lg("increasing xScale by ",ammount,interval)
 	}
 	///-----------------------------
-	var chartList = ['chart1','chart2','chart3','chart4'];
+	var chartList = ['chart1'];
 	var num_bars = {{chunk_size|int}};
 	var interval = "{{interval|string}}";
 	var currency = "{{currency|string}}";
 	var dataT = "{{dataT|string}}";
 	var data = {{graph_data|safe}};
 	var first_load = true;
+	var yScale 
+	var xAxisScale
+	var line_indicators = [];
+	var ch_width = 1000;
+	var ch_height = 400;
+	var ch_marginLeft = 30;
+	var ch_marginRight = 30;
+	var ch_marginTop = 20;
+	var ch_marginBottom = 20;
+	var bar_width =15;
+	var bar_padding = 3;
+	var transform = d3.zoomIdentity;
+	var yZoom = 0.000;
+	var padding = 30;
+	var x1Zoom = 0;
+	var x2Zoom = 5;
+	var updateInterval;
 	for (i in chartList){
 		chartID = chartList[i];
-		//draw_chart(chartID,currency,interval,dataT,num_bars,[],data,"or");
+		draw_chart(chartID,currency,interval,dataT,num_bars,[],data,"or");
 	}
 	first_load = false;
 	function draw_chart(chartID,currency,interval,dataT,num_bars,selected_indicators,data,dataOp){
+		testChanger = "j";
 		var tf_indicators = [];
-		var line_indicators = [];
 		for ( i in selected_indicators) {
 			let selected_indicator = selected_indicators[i].text;
 			let indicator = data[0][selected_indicator];
@@ -220,26 +239,17 @@
 				line_indicators.push(selected_indicator);
 			}
 		}
-		draw_chart_data(chartID,currency,interval,dataT,num_bars,selected_indicators,data,tf_indicators,line_indicators, dataOp);
+		draw_chart_data(chartID,currency,interval,dataT,num_bars,selected_indicators,data,tf_indicators,line_indicators, dataOp,"load");
 	}
-	function draw_chart_data(chartID,currency,interval,dataT,num_bars,selected_indicators,data,tf_indicators,line_indicators,dataOp){
+	function draw_chart_data(chartID,currency,interval,dataT,num_bars,selected_indicators,data,tf_indicators,line_indicators,dataOp,action){
 		if (first_load){
-			console.log("first load");
 		}else{
-			d3.select("#"+chartID).select("svg").remove();
+			d3.select("#"+chartID).selectAll("svg").remove();
 		}
+		
 		// Get data ---
-		var graph_data=data;
 		// Chart setup
 		//console.log(num_bars,interval,currency,dataT);
-		var ch_width = 1000;
-		var ch_height = 400;
-		var ch_marginLeft = 30;
-		var ch_marginRight = 30;
-		var ch_marginTop = 20;
-		var ch_marginBottom = 20;
-		var bar_width =15;
-		var bar_padding = 3;
 		if (num_bars >= 45) {
 			bar_width =10;
 			bar_padding = 2;
@@ -247,11 +257,6 @@
 			bar_widh = 5;
 			bar_padding = 1;
 		}
-		var transform = d3.zoomIdentity;
-		var yZoom = 0.000;
-		var padding = 30;
-		var x1Zoom = 0;
-		var x2Zoom = 5;
 		var dataOp = dataOp;
 		if (num_bars > 90){
 			if (interval == "M5"){
@@ -263,11 +268,11 @@
 			}
 		}
 		var dynamicElements = [];
-		var start_date = epochToDate(graph_data[0]['time'])
-		var end_date = epochToDate(graph_data[graph_data.length-1]['time'])
-		var xExtent = d3.extent(graph_data, function(d){return epochToDate(d['time']);});
-		var yExtent1 = d3.extent(graph_data, function(d){return d['Low'];});
-		var yExtent2 = d3.extent(graph_data, function(d){return d['High'];});
+		var start_date = epochToDate(data[0]['time'])
+		var end_date = epochToDate(data[data.length-1]['time'])
+		var xExtent = d3.extent(data, function(d){return epochToDate(d['time']);});
+		var yExtent1 = d3.extent(data, function(d){return d['Low'];});
+		var yExtent2 = d3.extent(data, function(d){return d['High'];});
 		var yDif = Math.abs(yExtent1[0] - yExtent2[1]);
 		// TODO: Finish getting zooming yscale
 		/*
@@ -281,55 +286,55 @@
 		if (interval == "D"){
 			start_pad = addDays(end_date,-50)//Note the subtraction
 			end_pad = addDays(end_date,x2Zoom); 
-			//console.log(start_pad,end_pad);
 		}
-		
+			
 		if (interval == "H1"){
 			start_pad = addHours(end_date,-50)//Note the subtraction
 			end_pad = addHours(end_date,x2Zoom); 
-			//console.log(start_pad,end_pad);
 		}
 		if (interval == "M5"){
 			start_pad = addMinutes(end_date,-50*5)//Note the subtraction
 			end_pad = addMinutes(end_date,x2Zoom); 
-			//console.log(start_pad,end_pad);
 		}
-		
-		var yScale = d3.scaleLinear()
-				.domain([d3.max(graph_data, function(d){return d['High']})+yZoom,d3.min(graph_data, function(d) {return d['Low']})-yZoom])
-				.range([0,ch_height-10]);
-		var xAxisScale = d3.scaleTime()
-		.domain([start_pad,end_pad])
-		.range([padding+20,ch_width]);
-		/*var xScale = d3.scaleLinear()
-				.domain([0,bar_width*data.length])
-				.range([0,ch_width]);*/
-		var chart_area = d3.select("#"+chartID).append("svg")
-			.attr('width', ch_width + ch_marginLeft - ch_marginRight)
-			.attr('height',ch_height - ch_marginTop - ch_marginBottom)
-			.style("background-color", 'LightGray');
-			var interactive_chart = chart_area.append('g')
-		    	.attr("transform", "translate(" + ch_marginLeft + ","+ch_marginTop + ")")
-		
-		// Tooltip setup
-		var tip = d3.tip()
-		  .attr('class', 'd3-tip')
-		  .offset([-10, 0])
-		  .html(function(d) {
-			  var indicatorVals = "";
-			  for (i in selected_indicators){
-				  var indicatorName = selected_indicators[i].text;
-				  var indicatorVal = d[indicatorName];
-				  if (indicatorVal === 1){
-					  indicatorVal = "True";
-				  } else if (indicatorVal === 0){
-					  indicatorVal = "False";
+		if (action = "load"){	
+			yScale = d3.scaleLinear()
+					.domain([d3.max(data, function(d){return d['High']})+yZoom,d3.min(data, function(d) {return d['Low']})-yZoom])
+					.range([0,ch_height-10]);
+			xAxisScale = d3.scaleTime()
+			.domain([start_pad,end_pad])
+			.range([padding+20,ch_width]);
+			/*var xScale = d3.scaleLinear()
+					.domain([0,bar_width*data.length])
+					.range([0,ch_width]);*/
+			var chart_area = d3.select("#"+chartID).append("svg")
+				.attr('width', ch_width + ch_marginLeft - ch_marginRight)
+				.attr('height',ch_height - ch_marginTop - ch_marginBottom)
+				.style("background-color", 'LightGray');
+				var interactive_chart = chart_area.append('g')
+				.attr("transform", "translate(" + ch_marginLeft + ","+ch_marginTop + ")")
+			
+			// Tooltip setup
+			var tip = d3.tip()
+			  .attr('class', 'd3-tip')
+			  .offset([-10, 0])
+			  .html(function(d) {
+				  var indicatorVals = "";
+				  if (selected_indicators.length >0 ){
+					  for (i in selected_indicators){
+						  var indicatorName = selected_indicators[i].text;
+						  var indicatorVal = d[indicatorName];
+						  if (indicatorVal === 1){
+							  indicatorVal = "True";
+						  } else if (indicatorVal === 0){
+							  indicatorVal = "False";
+						  }
+						  indicatorVals += "<strong>"+indicatorName+"</strong> <span style='color:tomato'>" +indicatorVal + "</span> <br>"; 
+					  }
 				  }
-				  indicatorVals += "<strong>"+indicatorName+"</strong> <span style='color:tomato'>" +indicatorVal + "</span> <br>"; 
-			  }
-			  return "<strong>Open:</strong> <span style='color:tomato'>" + d['Open'] + "</span> <br> <strong>High:</strong> <span style='color:tomato'>" + d['High'] + "</span> <br><strong>Low:</strong> <span style='color:tomato'>" + d['Low'] + "</span> <br> <strong>Close:</strong> <span style='color:tomato'>" + d['Close'] + "</span> <br>" + indicatorVals;
-		  })
-		interactive_chart.call(tip);
+				  return "<strong>Open:</strong> <span style='color:tomato'>" + d['Open'] + "</span> <br> <strong>High:</strong> <span style='color:tomato'>" + d['High'] + "</span> <br><strong>Low:</strong> <span style='color:tomato'>" + d['Low'] + "</span> <br> <strong>Close:</strong> <span style='color:tomato'>" + d['Close'] + "</span> <br>" + indicatorVals;
+				  
+			  })
+			interactive_chart.call(tip);
 		
 
 		// Axis setup
@@ -357,12 +362,13 @@
 			     .attr("transform", "translate(-5," + (ch_height-80) + ")");
 	     	xGroup.call(xAxis.scale(xAxisScale));
 		yGroup.call(yAxis.scale(yScale));
+		}
 
 
 		/*
 		//Arrow predictionIndecators //TODO: Use this code to cookie cutter any other prediction indicators
 		var advisorArrows = testChart.selectAll(".advisors")
-		 .data(graph_data)
+		 .data(data)
 		 .enter()
 		 .append("text")
 		 .text(function(d) {
@@ -374,8 +380,7 @@
 			 else {return "";}
 		})
 		 .attr("x", function(d, i) {
-			my_width = bar_width*zoomScale.k
-			return xAxisScale(epochToDate(d['time']))+ (bar_width/2) ;
+			my_width = bar_widnew_data		return xAxisScale(epochToDate(d['time']))+ (bar_width/2) ;
 			return xAxisScale(epochToDate(d['time']))+(i*bar_padding) + (bar_width/2)+ padding-10;
 		   })
 		 .attr("y", function(d) {
@@ -418,10 +423,11 @@
 		  .domain([0, line_indicators.length])
 		  .interpolator(d3.interpolateWarm);
 
-
 		indicatorLineList = [];	
-		drawIndicators(xAxisScale,yScale,transform);
-		function drawIndicators(xz,yz,transformData){
+		drawIndicators(xAxisScale,yScale);
+		function drawIndicators(xz,yz){
+
+		   if (selected_indicators.length >0){
 			for (i in line_indicators){
 				indicator_name = line_indicators[i];
 				var plotLine = d3.line()
@@ -441,6 +447,7 @@
 					.attr("fill", "none");
 				indicatorLineList.push(line);
 			}
+		   }
 		}
 
 		function format_line_selection(selection){
@@ -463,12 +470,11 @@
 		});
 
 
-
 		// Drawing the actual chart
 	        drawData(xAxisScale,yScale,transform);	
 		function drawData(xz,yz,zoomScale){
 			// High and Lows data wickets
-		     var HL_lines = interactive_chart.selectAll(".wickets").data(graph_data).enter().append("line");
+		     var HL_lines = interactive_chart.selectAll(".wickets").data(data).enter().append("line");
 			HL_lines.attr("class","wickets")
 			.attr("id","wickets")
 		      	.attr("clip-path", "url(#clip)")
@@ -508,9 +514,9 @@
 			// Open and Close Bars
 			// Check if any selected indicators are true/false
 
-		    var OC_rects = interactive_chart.selectAll(".bars").data(graph_data).enter().append("rect");
+		    var OC_rects = interactive_chart.selectAll(".bars").data(data).enter().append("rect");
 			OC_rects.attr("id","bar")
-			.attr("class","bar")
+			.attr("class","bars")
 		      	.attr("clip-path", "url(#clip)")
 			.attr("x", function(d,i) {
 					my_width = bar_width*zoomScale.k
@@ -601,13 +607,253 @@
 						return strokeColor
 					}
 				return strokeColor
-					
-					
 			})
 			.attr("stroke-width",2)
 			.on('mouseover', tip.show)
 			.on('mouseout', tip.hide);
 
+		}
+		if (action == "load"){
+			updateInterval = setInterval(updateChart, 3000);
+		}
+		function updateChart(){
+			var last_bar_id = data[data.length-1]['index'];
+			$.ajax({
+			    type: "GET",
+			    dataType: "json",
+			    url: "/get_latest_bar/"+currency+"/"+interval+"/"+dataT+"/"+last_bar_id,
+			    success: function (new_data) { 
+				    if (new_data == "none"){
+					    console.log("no new data");
+				    } else {
+					    if (new_data[0].index == last_bar_id){
+						    update_chart("update",new_data);
+					    }else {
+						    update_chart("add",new_data)
+					    }
+				   }
+			  }
+			});        			
+		}
+		function update_chart(action,new_data){
+			zoomScale = d3.zoomTransform(chart_area.node());
+			end_date = epochToDate(new_data[0]['time'])
+
+			if (interval == "D"){
+				start_pad = addDays(end_date,-50)//Note the subtraction
+				end_pad = addDays(end_date,x2Zoom); 
+			}
+				
+			if (interval == "H1"){
+				start_pad = addHours(end_date,-50)//Note the subtraction
+				end_pad = addHours(end_date,x2Zoom); 
+			}
+			if (interval == "M5"){
+				start_pad = addMinutes(end_date,-50*5)//Note the subtraction
+				end_pad = addMinutes(end_date,x2Zoom); 
+			}
+
+			xAxisScale.domain([start_pad,end_pad])
+			xz = zoomScale.rescaleX(xAxisScale)
+			yz = zoomScale.rescaleY(yScale)
+			
+			xGroup.call(xAxis.scale(xz));
+			yGroup.call(yAxis.scale(yz));
+			
+			if (action == "update"){
+				updateData(xz,yz,zoomScale,new_data);
+			}else{
+				appendData(xz,yz,zoomScale,new_data);
+			}
+			zoomed(zoomScale);
+			interactive_chart.call(tip);
+		}
+		function updateData(xz,yz,zoomScale,new_data){
+			lastPoint = data.pop();
+			data.push(new_data[0]);
+			updateWickets(xz,yz,zoomScale,data);
+			updateBars(xz,yz,zoomScale,data);
+			updateIndicators(xz,yz,zoomScale,data);
+		}
+
+		function appendData(xz,yz,zoomScale,new_data){
+			data.push(new_data[0]);
+		    	num_bars ++;
+			updateWickets(xz,yz,zoomScale,data);
+			updateBars(xz,yz,zoomScale,data);
+			updateIndicators(xz,yz,zoomScale,data);
+		}
+		// Updating chart helper functions
+		function updateWickets(xz,yz,zoomScale,data){
+			var HL_wickets = interactive_chart.selectAll(".wickets").data(data,function(d){return d['index']});
+			HL_wickets.enter().append("line")
+			.attr("class","wickets")
+			.attr("id","wickets")
+		      	.attr("clip-path", "url(#clip)")
+			.attr("x1", function(d,i){
+					return xz(epochToDate(d['time']));
+					console.log("adding wicket");
+			})
+			.attr("x2", function(d,i){
+					return xz(epochToDate(d['time']));
+			})
+			.attr("y1", function(d,i){
+					var yPos
+					if (d['Close'] > d['Open']){
+						yPos = d['High'];
+					}else if (d['Close'] < d['Open']){
+						yPos = d['High'];
+					}
+					else {
+						yPos = d['High'];
+					}
+				return yz(yPos)-(ch_marginBottom +ch_marginTop + padding)
+			})
+			.attr("y2", function(d,i){
+					var yPos
+					if (d['Close'] > d['Open']){
+						yPos = d['Low'];
+					}else if (d['Close'] < d['Open']){
+						yPos = d['Low'];
+					}
+					else {
+						yPos = d['Low'];
+					}
+				return yz(yPos)-(ch_marginBottom +ch_marginTop + padding)
+			})
+			.style("stroke","black")
+			.style("stroke-width",1)
+			.merge(HL_wickets)
+			.exit()
+			.remove()
+		}
+		
+		function updateBars(xz,yz,zoomScale,data){
+		    var old_rects = interactive_chart.selectAll(".bars").data(data, function(d){return d['index']});
+			old_rects.enter()
+				.append("rect")
+			       	.attr("id","bar")
+				//.attr("id",function(d){return "bar"+d['index']})
+				.attr("class","bars")
+				.attr("clip-path", "url(#clip)")
+				.attr("x", function(d,i) {
+						my_width = bar_width*zoomScale.k
+						return xz(epochToDate(d['time'])) - (my_width/2);
+				})
+				.attr("y", function(d,i){
+						yPos = 0;
+						// up
+						if (d['Close'] > d['Open']){
+							height= d['Close'] - d['Open'];				
+							yPos = d['Open']+height;
+						}else if (d['Close'] < d['Open']){
+							height= d['Close'] - d['Open'];				
+							yPos=d['Open'];				
+						}
+						else {
+							yPos=d['Open'];
+						}
+					return yz(yPos)-(ch_marginBottom +ch_marginTop + padding)
+				})
+				.attr("width",function(d,i){
+						my_width = bar_width*zoomScale.k
+						return my_width;
+						return xz(epochToDate(d['time'])) * (bar_width) / xz(epochToDate(d['time']));
+				})
+				.attr("height", function(d,i){
+						var yDist;
+							//up
+						if (d['Close'] > d['Open']){
+							yDist= yz(d['Close']) - yz(d['Open']);
+						}else if (d['Close'] < d['Open']){
+							yDist = yz(d['Open']) - yz(d['Close']);				
+						}
+						else {
+							yDist = 1;
+						}
+						return (Math.abs(yDist));
+				})
+				.attr("fill",function(d,i){
+					fillColor = ""
+					if (d['Close'] > d['Open']){
+						fillColor = "#0B61A4";				
+					}
+					if (d['Close'] < d['Open']){
+						fillColor = "#FF4900";				
+					}
+
+					if (dataT == "indicators" && tf_indicators.length >0){
+						var trueCount = 0;
+						for(i in tf_indicators){
+							result = d[tf_indicators[i]];
+							if (dataOp == 'or'){
+								if (result == 1){
+									fillColor = indicatorBarColor(i);
+									return fillColor;
+								}
+							} else {
+								if (result == 1){
+									trueCount ++;
+								} else {
+									return fillColor;
+								}
+							}
+						} 
+						if (trueCount == tf_indicators.length){
+							//fillColor = indicatorBarColor(0);
+							fillColor = "darkslategray"
+							return fillColor;
+						}else {
+							return fillColor
+						}
+
+					};
+					return fillColor;
+				})
+				.attr("stroke", function(d,i){
+					// This will be a indicator checker:
+						var strokeColor = "black";
+						// Loop through tru/False indicators, if one is true, make stroke say so
+						if (dataT == "indicators" && tf_indicators.length >0){
+							for (i in tf_indicators){
+								result = d[tf_indicators[i]];
+								if (result == 1){
+									strokeColor = indicatorBarColor(i);
+								}
+							}
+						} else{
+							return strokeColor
+						}
+					return strokeColor
+						
+						
+				})
+				.attr("stroke-width",2)
+				.on('mouseover', tip.show)
+				.on('mouseout', tip.hide)
+				.merge(old_rects)
+				.exit()
+				.remove()
+				//.transistion()
+				//.duration(500)
+		}
+		function updateIndicators(xz,yz,zoomScale,data){
+			   if (selected_indicators.length >0){
+				for (i in line_indicators){
+					indicator_name = line_indicators[i];
+					var plotLine = d3.line()
+					.x(function(d) {
+					    return xz(epochToDate(d['time']));
+					  })
+					 .y(function(d) {
+					    return yz(d[indicator_name])-(ch_marginTop +ch_marginBottom +padding);
+					  });
+					line = indicatorLineList[i];
+					line.transition()
+					.duration(0)
+					.attr("d", plotLine);
+				}
+		   	}
 		}
 		
 												      
@@ -620,8 +866,8 @@
 		.attr("stroke","black");
 		
 		var zoomBehaviour = d3.zoom()		
-		.scaleExtent([1, 10])
-		.translateExtent([[-10*ch_width, -500], [3*ch_width, ch_height + 100]])
+		.scaleExtent([1/2, 10])
+		.translateExtent([[-40*ch_width, -ch_height*10], [40*ch_width, ch_height * 10]])
 		.on("zoom",zoomed)
 
 		var zoomRect = chart_area.append("rect")
@@ -632,15 +878,9 @@
 		    .attr("pointer-events", "all")
 
 		chart_area.call(zoomBehaviour);	
-		function zoomed() {
-			var xz = d3.event.transform.rescaleX(xAxisScale)
-			var yz = d3.event.transform.rescaleY(yScale)
-			xGroup.call(xAxis.scale(xz));
-			yGroup.call(yAxis.scale(yz));
-			zoomScale = d3.event.transform;
 
-		// reposition chart elements ------
-			// HL Lines
+		// Chart movement  helper funcitons
+		function adjustHLLines(xz,yz,zoomScale,data){
 			interactive_chart.selectAll('#wickets')	
 				.attr("x1", function(d,i){
 						return xz(epochToDate(d['time'])) -bar_padding;
@@ -677,8 +917,9 @@
 					return yz(yPos)-(ch_marginBottom +ch_marginTop + padding)
 				})
 
+		}
 
-			// OC Rects
+		function adjustOCBars(xz,yz,zoomScale,data){
 			interactive_chart.selectAll('#bar')
 				.attr("x",function(d){
 					my_width = bar_width*zoomScale.k
@@ -716,8 +957,9 @@
 						}
 						return (Math.abs(yDist));
 				})
-			
-			       // Reposition/draw indicators	
+		}
+		function adjustIndicators(xz,yz,zoomScale,data){
+		   	if (selected_indicators.length >0){
 				for (i in line_indicators){
 					indicator_name = line_indicators[i];
 					var plotLine = d3.line()
@@ -732,23 +974,45 @@
 					.duration(0)
 					.attr("d", plotLine);
 				}
-
-			//interactive_chart.attr("transform", d3.event.transform)
-			//dynamicElements.forEach(function(element){
-			//	element.attr("transform", d3.event.transform)
-
-			 //});
-			// Axis movement
-			
+			}
 		}
-       }
+	       	 
 
-		
-		
+
+
+		function zoomed(zoomScale) {
+			var xz
+			var yz
+			if (zoomScale == null){
+				xz = d3.event.transform.rescaleX(xAxisScale)
+				yz = d3.event.transform.rescaleY(yScale)
+				zoomScale = d3.event.transform;
+			}else {
+				xz = zoomScale.rescaleX(xAxisScale)
+				yz = zoomScale.rescaleY(yScale)
+			}
+			xGroup.call(xAxis.scale(xz));
+			yGroup.call(yAxis.scale(yz));
+
+		// reposition chart elements ------
+			// HL Lines
+			adjustHLLines(xz,yz,zoomScale,data);
+			// OC Rects
+			adjustOCBars(xz,yz,zoomScale,data);
+		       // Reposition/draw indicators	
+			adjustIndicators(xz,yz,zoomScale,data);
+		}
+	}
+
+		      
 	</script>
 
 	<script>
 	function reload_chart(chartID){
+		// Delete old dat
+		indicatorLineList = [];
+		line_indicators = [];
+
 		var newData = document.getElementById("data_selector_"+chartID)
 		var currency = newData.currency.value;
 		var interval = newData.interval.value;
@@ -757,6 +1021,8 @@
 		var selected_indicators = $('#'+chartID+"_indicators").select2('data');
 		var new_data =[];
 		var dataOp = newData.inlineRadioOptions.value;
+		clearInterval(updateInterval);
+		console.log(currency,interval,num_bars);
 		$.ajax({
 		    type: "GET",
 		    dataType: "json",
@@ -765,17 +1031,16 @@
 			new_data = data
 			draw_chart(chartID,currency,interval,dataT,num_bars,selected_indicators,new_data,dataOp)
 
-		  },
+		 	},
 		});        			
 
-	}
+		}
 		
 		var slider1 = document.getElementById("num_bar_slider_1");
 
 		var output1 = document.getElementById("num_bar_val_1");
 
 		output1.innerHTML = slider1.value; // Display the default slider value
-
 		// Update the current slider value (each time you drag the slider handle)
 		slider1.oninput = function() {
 		  output1.innerHTML = this.value;
@@ -786,7 +1051,10 @@
 		});
 	</script>
 
-	<button type='button' class="btn btn-success btn-block" onclick="window.location.href='{{ url_for( 'council_results')}}';">View Council Results</button>
+
+
+	<button type='button' class="btn btn-secondary btn-block float-botom" onclick="window.location.href='{{ url_for( 'algo_benchmark')}}';">View Benchmark Results</button>
+	<button type='button' class="btn btn-secondary btn-block float-botom" onclick="window.location.href='{{ url_for( 'council_results')}}';">View Council Results</button>
 	</div>
 	{# endraw #}
 	

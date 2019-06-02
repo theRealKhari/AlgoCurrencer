@@ -48,10 +48,6 @@ def index():
         if col not in ['index','time','High','Low','Open','Close','Complete','log_returns']:
             indicator_list.append(col)
 
-    print(indicator_list)
-
-
-
     graph_chunk = panda_data.tail(chunk_size)
     graph_chunk = graph_chunk.to_json(orient='records')
     return render_template('index.html', graph_data=graph_chunk, chunk_size=chunk_size,interval=interval,currency=currency,dataT=dataT, currency_pairs=currency_pairs, intervals=interval_options, types=data_types, indicator_list = indicator_list)
@@ -60,6 +56,12 @@ def index():
 def council_results():
     return render_template('council_results.html')
 
+@app.route('/algo_benchmark', methods=['GET','POST'])
+def algo_benchmark():
+    modes = [{'name': 'All Trades', 'value':'allTrades'},
+                {'name': 'Correct Trades', 'value':'correctTrades'},
+                {'name': 'Both', 'value':'bothTrades'}]
+    return render_template('algo_benchmark.html',modes= modes)
 
 @app.route('/get_data/<currency>/<interval>/<dataT>/<num_bars>', methods=['GET','POST'])
 def get_data(currency,interval,dataT,num_bars):
@@ -70,6 +72,37 @@ def get_data(currency,interval,dataT,num_bars):
         graph_chunk = data.tail(int(num_bars))
         graph_chunk = graph_chunk.to_json(orient='records')
         return graph_chunk
+
+@app.route('/get_latest_bar/<currency>/<interval>/<dataT>/<lastID>', methods=['GET','POST'])
+def get_latest_bar(currency,interval,dataT,lastID):
+        table_name = "ktrade_"+currency+"_"+interval+"_"+dataT
+        result = db.get_latest_bar(table_name)
+        currID = result['index'].values[0]
+        if int(currID) == int(lastID):
+            print("UPDATE")
+            return result.to_json(orient='records')
+        else:
+            print("append")
+            latest_bar = result.to_json(orient='records')
+            return latest_bar
+
+
+@app.route('/get_benchmark_results/<algoName>', methods=['GET','POST'])
+def get_benchmark_results(algoName):
+    #TODO: update table name to be dynamic depending on the @param: name
+    table_name="gg_benchmark_results"
+    data = db.get_table_panda(table_name)
+    benchmark_results =data.to_json(orient='records')
+    return benchmark_results
+    
+@app.route('/get_benchmark_answers/<algoName>', methods=['GET','POST'])
+def get_benchmark_answers(name):
+    #TODO: update table name to be dynamic depending on the @param: name
+    table_name="gg_timeline_answers"
+    data = db.get_table_panda(table_name)
+    benchmark_answers =data.to_json(orient='records')
+    return benchmark_answers
+
 
 @app.context_processor
 def test_debug():
@@ -96,5 +129,5 @@ def test_debug():
 
 # -------------------------------------------
 if '__main__' == __name__:
-    app.run(ssl_context=('cert.pem', 'key.pem'), host='0.0.0.0',debug=True)
+     app.run(ssl_context=('cert.pem', 'key.pem'), host='0.0.0.0',port=5000, debug=True)
 

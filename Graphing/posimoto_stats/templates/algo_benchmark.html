@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+{% block title %}
+Benchmark  Results
+{% endblock %}
+{% block content %}
+<style>
+
+.buyBar {
+	fill:  #b3ffec;
+	stroke: black;
+	stroke-width: 1px;
+	}
+.sellBar {
+	fill:  #ffcce0;
+	stroke: black;
+	stroke-width: 1px;
+	}
+.neutralBar {
+	fill:  #cce6ff;
+	stroke: black;
+	stroke-width: 1px;
+	}
+
+.buyCBar {
+	fill:   #33ffcc;
+	stroke: black;
+	stroke-width: 1px;
+	}
+.sellCBar {
+	fill:  #cc0052;
+	stroke: black;
+	stroke-width: 1px;
+	}
+.neutralCBar {
+	fill:  #0066cc;
+	stroke: black;
+	stroke-width: 1px;
+	}
+
+.buyWBar {
+	fill: blue;
+	stroke: red;
+	stroke-width: 1px;
+	}
+.sellWBar {
+	fill: teal;
+	stroke: red;
+	stroke-width: 1px;
+	}
+.neutralWBar {
+	fill: lightblue;
+	stroke: red;
+	stroke-width: 1px;
+	}
+
+
+.bar:hover{
+	stroke-width: 4px;
+}
+
+</style>
+
+	<div class=container chart_holder>
+		<h2> Visualize results from algorithm benchmarks</h2>
+	</div>
+		
+		<form action="" id='leftChartSettings' enctype="multipart/form-data">
+			<span>Viewing Mode:</span>
+			<select style="width:10%" class="select2-search" name="mode">
+				{% for mode in modes %}
+					<option value={{mode.value}}>{{mode.name}}</option>
+				{% endfor %}
+			</select>
+			<input type="button" class='btn btn-primary' onclick="reloadLeftChart()" name="submit_button" value="Load">
+		</form>
+	<div id= "leftChartDiv"> 
+	<script>	
+	function getData(){
+		return global_data;
+	}
+	
+	function reloadLeftChart(){
+		d3.select("#leftChartDiv").selectAll("svg").remove();
+		loadLeftChart();
+	}
+
+	function loadLeftChart(){
+		console.log("Reloading left chart");
+		lCSets = document.getElementById("leftChartSettings");
+		var mode = lCSets.mode.value
+		console.log(mode);
+		data = getData();
+		console.log("got data:,",data);
+		// Parse out data depending on view mode (optional):
+		if (mode === 'allTrades'){
+			var allAlgoStats = []
+			for(var i = 0; i < data.length; i++){
+			//	console.log("parsingAlgo:",data[i]['name']);
+				//let algoStat = {'name': algoNqmes[i], 'buys': algoBuys, 'sells': algoSells, 'neutrals': algoNeutrals}
+			}
+			drawLeftChart(mode, data);
+			
+
+		} else if (mode === 'correctTrades') {
+			drawLeftChart(mode, data);
+
+		} else if (mode === 'bothTrades' ) {
+			drawLeftChart(mode, data);
+
+		}
+	}
+
+	function drawLeftChart(mode,data) {
+		var bar_width = 10;
+		var bar_spacing = 8;
+		var leftChart = { width: 1800, height: 400, margin: {left: 30, right:30, top: 20, bottom:20}}
+		//Scales
+		var xScale = d3.scaleLinear()
+			.domain([0,(data.length * bar_width) + (data.length + bar_spacing)])
+			.range([0,leftChart.width]);
+
+		console.log(data[0]['total_trades']);
+		var yScale = d3.scaleLinear()
+			.domain([0,data[0]['total_trades']])
+		//	.domain([d3.max(data, function(d){return d['total_trades']}),0])
+			.range([0,leftChart.height - leftChart.margin.top]);
+
+		chart_area = d3.select("#leftChartDiv").append("svg")
+			.attr('width', leftChart.width + leftChart.margin.left +leftChart.margin.right)
+			.attr('height',leftChart.height + leftChart.margin.top+ leftChart.margin.bottom)
+			.style("background-color", 'white');
+		var interactive_chart = chart_area.append('g')
+			.attr("transform", "translate(" + leftChart.margin.left + ","+leftChart.margin.top + ")");
+
+		xAxis = d3.axisBottom(xScale)
+		    	.ticks();
+
+
+		console.log("mode",mode);
+		if (mode == "allTrades" || mode == "bothTrades"){
+
+			// total NeutralBars
+			interactive_chart.selectAll(".neutralBar")
+				.data(data)
+				.enter()
+				.append("rect")
+				.attr('class',"neutralBar")
+				.attr("x", function(d,i){
+					return xScale(i*bar_width) + (bar_spacing*i);
+				})
+				.attr("y", function(d,i){
+					return leftChart.height - yScale(d['neutrals']) ;
+				})
+				.attr("width", (bar_width))
+				.attr("height", function(d,i){
+					return yScale(d['neutrals']);
+				});
+
+			// total buy Bars
+			interactive_chart.selectAll(".buyBar")
+				.data(data)
+				.enter()
+				.append("rect")
+				.attr('class',"buyBar")
+				.attr("x", function(d,i){
+					return xScale(i*bar_width) + (bar_spacing*i) - bar_width;
+				})
+				.attr("y", function(d,i){
+					return leftChart.height - yScale(d['buys']) ;
+				})
+				.attr("width", (bar_width))
+				.attr("height", function(d,i){
+					return yScale(d['buys']);
+				});
+
+			// total sell Bars
+			interactive_chart.selectAll(".sellBar")
+				.data(data)
+				.enter()
+				.append("rect")
+				.attr('class',"sellBar")
+				.attr("x", function(d,i){
+					return xScale(i*bar_width) + (bar_spacing*i) + bar_width;
+				})
+				.attr("y", function(d,i){
+					return leftChart.height - yScale(d['sells']) ;
+				})
+				.attr("width", (bar_width))
+				.attr("height", function(d,i){
+					return yScale(d['sells']);
+				});
+		}
+
+		
+		// If mode is both: 
+		if (mode == "correctTrades" || mode == "bothTrades"){
+			
+			//Neutral Correct
+		
+			interactive_chart.selectAll(".neutralCBar")
+				.data(data)
+				.enter()
+				.append("rect")
+				.attr('class',"neutralCBar")
+				.attr("x", function(d,i){
+					return xScale(i*bar_width) + (bar_spacing*i);
+				})
+				.attr("y", function(d,i){
+					var goodNeuts = d['neutrals'] * (d['good_neutral_percentage']/100);
+					return leftChart.height - yScale(goodNeuts) ;
+				})
+				.attr("width", (bar_width))
+				.attr("height", function(d,i){
+					var goodNeuts = d['neutrals'] * (d['good_neutral_percentage']/100);
+					return yScale(goodNeuts);
+				});
+
+			// buy Bars
+			interactive_chart.selectAll(".buyCBar")
+				.data(data)
+				.enter()
+				.append("rect")
+				.attr('class',"buyCBar")
+				.attr("x", function(d,i){
+					return xScale(i*bar_width) + (bar_spacing*i) - bar_width;
+				})
+				.attr("y", function(d,i){
+					console.log(yScale(d['good_buys']),yScale(d['buys']));
+					return leftChart.height - yScale(d['good_buys']) ;
+				})
+				.attr("width", (bar_width))
+				.attr("height", function(d,i){
+					return yScale(d['good_buys']);
+				});
+
+			// sell Bars
+			interactive_chart.selectAll(".sellCBar")
+				.data(data)
+				.enter()
+				.append("rect")
+				.attr('class',"sellCBar")
+				.attr("x", function(d,i){
+					return xScale(i*bar_width) + (bar_spacing*i) + bar_width;
+				})
+				.attr("y", function(d,i){
+					return leftChart.height - yScale(d['good_sells']) ;
+				})
+				.attr("width", (bar_width))
+				.attr("height", function(d,i){
+					return yScale(d['good_sells']);
+				});
+		}
+	
+	}
+	</script>
+	</div> <div id="righrChartDiv"> </div>
+	<br>
+	<div id="bottomChartDiv"></div>
+	<br>
+	<div id="bottomBarDiv"></div>
+	<script>
+	
+	</script>
+
+	<script> 
+	// loads,parses, and calls all chart creation
+	var algoName = "gg";
+	var global_data;
+	function loadData(){	
+		$.ajax({
+		    type: "GET",
+		    dataType: "json",
+		    url: "/get_benchmark_results/"+algoName,
+		    success: function (data) { 
+			new_data = data
+			parseBenchmark(new_data)
+		 	},
+		});        			
+	}
+		function parseBenchmark(data){
+			global_data = data;
+			console.log("parsing",data);
+			// load in lefchart settings
+			loadLeftChart();
+			//console.log(mode);
+		}
+	loadData();
+	$(document).ready(function() {
+	    $('.select2-search').select2();
+	});
+	</script>
+
+{% endblock %}
+
