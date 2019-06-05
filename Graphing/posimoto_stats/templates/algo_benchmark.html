@@ -37,6 +37,20 @@ Benchmark  Results
 	stroke-width: 1px;
 	}
 
+
+.goodTrade {
+	fill:  #8FBC8F;
+	stroke: black;
+	stroke-width: 1px;
+}
+
+.badTrade {
+	fill:  #F08080;
+	stroke: black;
+	stroke-width: 1px;
+}
+
+
 .buyWBar {
 	fill: blue;
 	stroke: red;
@@ -53,6 +67,13 @@ Benchmark  Results
 	stroke-width: 1px;
 	}
 
+.legend rect {
+	fill:white;
+  	stroke:black;
+  	opacity:0.8;
+	}
+
+
 
 .bar:hover{
 	stroke-width: 4px;
@@ -64,18 +85,166 @@ Benchmark  Results
 		<h2> Visualize results from algorithm benchmarks</h2>
 	</div>
 		
+			<br>
 		<form action="" id='leftChartSettings' enctype="multipart/form-data">
+
 			<span>Viewing Mode:</span>
 			<select style="width:10%" class="select2-search" name="mode">
 				{% for mode in modes %}
 					<option value={{mode.value}}>{{mode.name}}</option>
 				{% endfor %}
 			</select>
+
 			<input type="button" class='btn btn-primary' onclick="reloadLeftChart()" name="submit_button" value="Load">
 		</form>
 	<div id= "leftChartDiv"> 
 	<script>	
+	
 	function getData(){
+		var group1L = $('#chartGroup0').select2('data');
+		var group2L = $('#chartGroup1').select2('data');
+		var group3L = $('#chartGroup2').select2('data');
+
+		var group1 = [];
+		var group2 = [];
+		var group3 = [];
+
+		
+		for (i in group1L){
+			let algoName = group1L[i].text;
+			group1.push(algoName);
+		}
+		for (i in group2L){
+			let algoName = group2L[i].text;
+			group2.push(algoName);
+		}
+		for (i in group3L){
+			let algoName = group3L[i].text;
+			group3.push(algoName);
+		}
+
+		var groupList = [group1,group2,group3];
+
+		hasGroupData = group1.length >0  || group2.length >0 || group3.length >0
+		if (hasGroupData) {
+			//console.log("parsingGroup",data);
+			new_data = []
+			var groupAlgoIDs = [];
+			for (var i = 0; i <groupList.length; i++){
+				let group = groupList[i];
+				var algoIndexes = [];
+				for (var j = 0; j <global_data.length; j++){
+					let algo = global_data[j];
+					let algoName = algo['name'];
+					let indexGuess = [];
+					let nameIndex = group.indexOf(algoName);
+					if (nameIndex >= 0){
+						algoIndexes.push(j);
+						//console.log("found name in ",j,algoName);
+					}
+				}
+				groupAlgoIDs.push(algoIndexes);
+			}
+			var answers = getAnswers();
+
+			// create guess nested array
+			//console.log(answers);
+			var allGuesses = [];
+			for ( var i = 0; i <answers.length; i++){
+				let groupGuess = [];
+				for (var j = 0; j < groupAlgoIDs.length; j++){
+					let groupAlgos = groupAlgoIDs[j];
+					//console.log("algoIDG",groupAlgos);
+					let algoGuessArr = [];
+					for (var ID = 0; ID < groupAlgos.length; ID ++){
+						let algoID = groupAlgoIDs[j][ID];
+						let algoName = global_data[algoID]['name'];
+						let algoGuesses = JSON.parse(global_data[algoID]['trades']);
+						let algoGuess = algoGuesses[i]; 
+						//console.log(algoName);
+						algoGuessArr.push(algoGuess);
+					}
+					//console.log(algoGuessArr);
+					groupGuess.push(algoGuessArr);
+
+				}
+				allGuesses.push(groupGuess);
+			}
+
+			// Helper counter funciton
+			function countEl(arr,el){
+				var num = 0;
+				for (var n =0; n<arr.length; n++){
+					if (arr[n] == el){
+						num ++;
+					}
+				}
+				return num;
+			}
+			// Parse through data & answers and analyze results
+			//console.log("Minthresh",agThresh);
+			var allGroupResults = [];
+			for (groupID in allGuesses[0]){
+				let numBuys = 0;
+				let numSells = 0;
+				let numNeutrals = 0;
+
+				let goodBuys = 0;
+				let goodSells = 0;
+				let goodNeutrals= 0;
+
+				let badBuys = 0;
+				let badSells = 0;
+				let badNeutrals= 0;
+				let stats = {};
+				var totalAns = answers.length;
+				var agThresh = document.getElementById("agreeMin"+groupID).value;
+				for(ansID in answers){
+					let answer = answers[ansID]['answer'];
+					let groupGuess = allGuesses[ansID][groupID];
+					
+					// Buys
+					let buyCount = countEl(groupGuess,1); 
+					if (buyCount >= agThresh){
+						numBuys ++;
+						goodBuys += answer == 1;
+						badBuys += answer == -1;
+						badBuys += answer == 0;
+					}
+					//sells
+					let sellCount = countEl(groupGuess,-1); 
+					if (sellCount >= agThresh){
+						numSells ++;
+						goodSells += answer == -1;
+						badSells += answer == 1;
+						badSells+= answer == 0;
+
+					}
+					//Neutrals
+					let neutralCount = countEl(groupGuess,0); 
+					if (neutralCount >= agThresh){
+						numNeutrals ++;
+						goodNeutrals += answer == 0;
+						badNeutrals += answer == -1;
+						badNeutrals += answer == 1;
+
+					}
+				}
+				let percentCorrectBuys = goodBuys/totalAns
+				let percentCorrectSells = goodSells/totalAns
+				let percentCorrectNeutrals = goodNeutrals/totalAns
+				let percentWrongBuys = badBuys/totalAns
+				let percentWrongSells= badSells/totalAns
+				stats = {'name': groupID, 'buys': numBuys, 'sells': numSells, 'neutrals': numNeutrals,
+					'good_buys': goodBuys, 'good_sells': goodSells, 'good_neutrals':goodNeutrals, 'bad_buys': badBuys,
+					'bad_sells': badSells, 'bad_neutrals': badNeutrals,
+					  'total_trades': totalAns, 'good_buy_percentage': percentCorrectBuys,
+					  'good_sell_percentage': percentCorrectSells, 'good_neutral_percentage': percentCorrectNeutrals,
+					  'bad_buy_percentage': percentWrongBuys, 'bad_sell_percentage': percentWrongSells}
+				allGroupResults.push(stats);
+			}
+			return allGroupResults;
+		}
 		return global_data;
 	}
 	
@@ -85,12 +254,12 @@ Benchmark  Results
 	}
 
 	function loadLeftChart(){
-		console.log("Reloading left chart");
+		//console.log("Reloading left chart");
 		lCSets = document.getElementById("leftChartSettings");
 		var mode = lCSets.mode.value
-		console.log(mode);
+		//console.log(mode);
 		data = getData();
-		console.log("got data:,",data);
+		//console.log("got data:,",data);
 		// Parse out data depending on view mode (optional):
 		if (mode === 'allTrades'){
 			var allAlgoStats = []
@@ -111,6 +280,7 @@ Benchmark  Results
 	}
 
 	function drawLeftChart(mode,data) {
+		var modeTrades = [];
 		var bar_width = 10;
 		var bar_spacing = 8;
 		var leftChart = { width: 1800, height: 400, margin: {left: 30, right:30, top: 20, bottom:20}}
@@ -119,11 +289,12 @@ Benchmark  Results
 			.domain([0,(data.length * bar_width) + (data.length + bar_spacing)])
 			.range([0,leftChart.width]);
 
-		console.log(data[0]['total_trades']);
+		totalTrades = data[0]['total_trades'];
 		var yScale = d3.scaleLinear()
-			.domain([0,data[0]['total_trades']])
-		//	.domain([d3.max(data, function(d){return d['total_trades']}),0])
-			.range([0,leftChart.height - leftChart.margin.top]);
+			.domain([0,totalTrades])
+			.range([leftChart.height - leftChart.margin.top,0]);
+			//.domain([d3.max(data, function(d){return d['total_trades']}),0])
+			//.range([0,leftChart.height - leftChart.margin.top]);
 
 		chart_area = d3.select("#leftChartDiv").append("svg")
 			.attr('width', leftChart.width + leftChart.margin.left +leftChart.margin.right)
@@ -132,13 +303,52 @@ Benchmark  Results
 		var interactive_chart = chart_area.append('g')
 			.attr("transform", "translate(" + leftChart.margin.left + ","+leftChart.margin.top + ")");
 
-		xAxis = d3.axisBottom(xScale)
-		    	.ticks();
+		var xAxis = d3.axisBottom(xScale)
+			.tickSize(0)
+			.tickFormat(function(d,i) {
+				//console.log("dI",d,i);
+				return "";
+				});
+
+		var yAxis = d3.axisLeft(yScale)
+			.tickSize(-leftChart.width)
+			.tickFormat(function(d) {
+				return d;
+				});
+
+		var xGroup = interactive_chart.append("g")
+		    .attr("transform", "translate("+(leftChart.margin.left - bar_width)+"," + (leftChart.height - leftChart.margin.bottom) + ")")
+		    .call(xAxis);
+
+		var yGroup = interactive_chart.append("g")
+		    .attr("transform", "translate("+(leftChart.margin.left - bar_width -2)+"," + 0 + ")")
+		    .call(yAxis);
 
 
-		console.log("mode",mode);
+		//console.log("mode",mode);
+
+		// Algo name Lables:
+		interactive_chart.selectAll(".algoName")
+			.data(data)
+			.enter()
+			.append("text")
+			.attr("class","algoName")
+			.text(function(d) {
+				return d['name'];
+				})
+			.attr("x", function(d, i) {
+				return xScale(i*bar_width) + (bar_spacing*i) + leftChart.margin.left;
+				})
+			.attr("y", function(d) {
+				return leftChart.height;
+				})
+			.attr("font-family", "sans-serif")
+		   		.attr("font-size", "11px")
+			   	.attr("fill", "black")
+				.attr("text-anchor", "middle")
+		
 		if (mode == "allTrades" || mode == "bothTrades"){
-
+			modeTrades.push("Total Buys", "Total Neutrals", "Total Sells");
 			// total NeutralBars
 			interactive_chart.selectAll(".neutralBar")
 				.data(data)
@@ -146,14 +356,17 @@ Benchmark  Results
 				.append("rect")
 				.attr('class',"neutralBar")
 				.attr("x", function(d,i){
-					return xScale(i*bar_width) + (bar_spacing*i);
+					return xScale(i*bar_width) + (bar_spacing*i) + leftChart.margin.left;
 				})
 				.attr("y", function(d,i){
-					return leftChart.height - yScale(d['neutrals']) ;
+					return (yScale(d['neutrals']));
+				//	return (leftChart.height - leftChart.margin.bottom) - yScale(d['neutrals'])  ;
 				})
 				.attr("width", (bar_width))
 				.attr("height", function(d,i){
-					return yScale(d['neutrals']);
+					//return d['neutrals']
+				//	console.log(d['neutrals'],yScale(d['neutrals']));
+					return (leftChart.height - leftChart.margin.bottom) - yScale(d['neutrals']);
 				});
 
 			// total buy Bars
@@ -163,14 +376,16 @@ Benchmark  Results
 				.append("rect")
 				.attr('class',"buyBar")
 				.attr("x", function(d,i){
-					return xScale(i*bar_width) + (bar_spacing*i) - bar_width;
+					return xScale(i*bar_width) + (bar_spacing*i) - bar_width + leftChart.margin.left;
 				})
 				.attr("y", function(d,i){
-					return leftChart.height - yScale(d['buys']) ;
+					return (yScale(d['buys']))
+					//return (leftChart.height - leftChart.margin.bottom) - yScale(d['buys']) ;
 				})
 				.attr("width", (bar_width))
 				.attr("height", function(d,i){
-					return yScale(d['buys']);
+					//return yScale(d['buys']);
+					return (leftChart.height - leftChart.margin.bottom) - yScale(d['buys']) ;
 				});
 
 			// total sell Bars
@@ -180,20 +395,23 @@ Benchmark  Results
 				.append("rect")
 				.attr('class',"sellBar")
 				.attr("x", function(d,i){
-					return xScale(i*bar_width) + (bar_spacing*i) + bar_width;
+					return xScale(i*bar_width) + (bar_spacing*i) + bar_width + leftChart.margin.left;
 				})
 				.attr("y", function(d,i){
-					return leftChart.height - yScale(d['sells']) ;
+					return yScale(d['sells']);
+					//return (leftChart.height - leftChart.margin.bottom)  - yScale(d['sells']) ;
 				})
 				.attr("width", (bar_width))
 				.attr("height", function(d,i){
-					return yScale(d['sells']);
+					//return yScale(d['sells']);
+					return (leftChart.height - leftChart.margin.bottom)  - yScale(d['sells']) ;
 				});
 		}
 
 		
 		// If mode is both: 
 		if (mode == "correctTrades" || mode == "bothTrades"){
+			modeTrades.push("Good Buys", "Good Neutrals", "Good Sells");
 			
 			//Neutral Correct
 		
@@ -203,16 +421,18 @@ Benchmark  Results
 				.append("rect")
 				.attr('class',"neutralCBar")
 				.attr("x", function(d,i){
-					return xScale(i*bar_width) + (bar_spacing*i);
+					return xScale(i*bar_width) + (bar_spacing*i) + leftChart.margin.left;
 				})
 				.attr("y", function(d,i){
-					var goodNeuts = d['neutrals'] * (d['good_neutral_percentage']/100);
-					return leftChart.height - yScale(goodNeuts) ;
+					var goodNeuts = d['good_neutrals'];
+					//return (leftChart.height - leftChart.margin.bottom) -goodNeuts ;
+					return yScale(goodNeuts);
 				})
 				.attr("width", (bar_width))
 				.attr("height", function(d,i){
-					var goodNeuts = d['neutrals'] * (d['good_neutral_percentage']/100);
-					return yScale(goodNeuts);
+					var goodNeuts = d['good_neutrals'];
+					//return goodNeuts;
+					return (leftChart.height - leftChart.margin.bottom) - yScale(goodNeuts) ;
 				});
 
 			// buy Bars
@@ -222,15 +442,17 @@ Benchmark  Results
 				.append("rect")
 				.attr('class',"buyCBar")
 				.attr("x", function(d,i){
-					return xScale(i*bar_width) + (bar_spacing*i) - bar_width;
+					return xScale(i*bar_width)+(bar_spacing*i)-bar_width + leftChart.margin.left;
 				})
 				.attr("y", function(d,i){
-					console.log(yScale(d['good_buys']),yScale(d['buys']));
-					return leftChart.height - yScale(d['good_buys']) ;
+					//console.log(yScale(d['good_buys']),yScale(d['buys']));
+					//return (leftChart.height - leftChart.margin.bottom)- (d['good_buys']) ;
+					return yScale(d['good_buys']);
 				})
 				.attr("width", (bar_width))
 				.attr("height", function(d,i){
-					return yScale(d['good_buys']);
+					//return d['good_buys'];
+					return (leftChart.height - leftChart.margin.bottom)- yScale(d['good_buys']) ;
 				});
 
 			// sell Bars
@@ -240,51 +462,395 @@ Benchmark  Results
 				.append("rect")
 				.attr('class',"sellCBar")
 				.attr("x", function(d,i){
-					return xScale(i*bar_width) + (bar_spacing*i) + bar_width;
+					return xScale(i*bar_width) + (bar_spacing*i) + bar_width + leftChart.margin.left;
 				})
 				.attr("y", function(d,i){
-					return leftChart.height - yScale(d['good_sells']) ;
+					//return (leftChart.height-leftChart.margin.bottom) - (d['good_sells']) ;
+					return yScale(d['good_sells']);
 				})
 				.attr("width", (bar_width))
 				.attr("height", function(d,i){
-					return yScale(d['good_sells']);
+					//return d['good_sells']
+					return (leftChart.height-leftChart.margin.bottom) - yScale(d['good_sells']) ;
 				});
 		}
+			
+		// Draw the legend
+		//Draw background rect
+		var legendBG = interactive_chart.append("rect")
+		  .attr("fill","white")
+		  .attr("x", leftChart.width/2 -150)
+		  .attr("y", -20)
+	          .attr("stroke","grey")
+		  .attr("width", modeTrades.length * 88.3)
+		  .attr("height",55)
+
+		//Actual legend
+		var legendScale = d3.scaleOrdinal()
+		  .domain(modeTrades)
+		  .range([ "#b3ffec", "#cce6ff", "#ffcce0", "#33ffcc", "#0066cc","#cc0052"]);
+
+		interactive_chart.append("g")
+		  .attr("class", "legendOrdinal")
+		  .attr("transform", "translate("+(leftChart.width/2 - leftChart.margin.right - 100)+",-20)");
+
+		var legendOrdinal = d3.legendColor()
+		  .shape("rect")
+		  //.shape("path", d3.symbol().type(d3.symbolTriangle).size(100)())
+		  .shapePadding(50)
+		  .orient('horizontal')
+		  //use cellFilter to hide the "e" cell
+		  //.cellFilter(function(d){ return d.label !== "e" })
+		  .scale(legendScale)
+		  .labelWrap(30)
+	      	  .shapeWidth(40)
+	      	  .labelAlign("start")
+		interactive_chart.select(".legendOrdinal")
+		  .call(legendOrdinal);
 	
 	}
 	</script>
-	</div> <div id="righrChartDiv"> </div>
+	</div> 
+		<form id="groupForm"  action="">
+			<span> <b>Group 0:</b></span>
+			<select class="select2-search indicator_select" id="chartGroup0" name="group0" style="width:10%" multiple="multiple">
+				{% for algoName in algoNames %}
+					<option value={{algoName}}>{{algoName}}</option>
+				{% endfor %}
+			</select>
+			<span> Min agreement:</span>
+			<input style="width:35px" type="number" class="number" id="agreeMin0" name="agreeMin0", value=1>	
+
+			<span> <b>Group 1:</b></span>
+			<select class="select2-search indicator_select" id="chartGroup1" name="group1" style="width:10%" multiple="multiple">
+				{% for algoName in algoNames %}
+					<option value={{algoName}}>{{algoName}}</option>
+				{% endfor %}
+			</select>
+			<span>   Min agreement:</span>
+			<input style="width:35px" type="number" class="number" id="agreeMin1" name="agreeMin1", value=1>	
+
+
+			<span> <b>Group 2:</b></span>
+			<select class="select2-search indicator_select" id="chartGroup2" name="group2" style="width:10%" multiple="multiple">
+				{% for algoName in algoNames %}
+					<option value={{algoName}}>{{algoName}}</option>
+				{% endfor %}
+			</select>
+			<span>   Min agreement:</span>
+			<input style="width:35px" type="number" class="number" id="agreeMin2" name="agreeMin2", value=1>	
+
+			<input type="button" class='btn btn-secondary' onclick="reloadData()" name="submit_button" value="Load group Data">
+		</form>
+	<br>
+	
+	
+	<form action="" id='rightChartSettings' enctype="multipart/form-data">
+		<span>Viewing Mode:</span>
+		<select style="width:10%" class="select2-search" name="mode">
+			{% for mode in GBmodes %}
+				<option value={{mode.value}}>{{mode.name}}</option>
+			{% endfor %}
+		</select>
+		<input type="button" class='btn btn-primary' onclick="reloadRightChart()" name="submit_button" value="Load">
+	</form>
+	<div id="rightChartDiv">
+	<script>
+	// Onchange for form
+		$('#groupForm').change(function(){reloadData()});
+	function reloadRightChart(){
+		d3.select("#rightChartDiv").selectAll("svg").remove();
+		loadRightChart();
+	}
+
+	function loadRightChart(){
+		rCSets = document.getElementById("rightChartSettings");
+		var mode = rCSets.mode.value
+		//console.log("rightChartMode",mode);
+		data = getData();
+		//console.log("got data:,",data);
+		// Parse out data depending on view mode (optional):
+		drawRightChart(mode, data);
+
+	}
+
+	function drawRightChart(mode,data) {
+		var modeTrades = [];
+		var bar_width = 10;
+		var bar_spacing = 8;
+		var rightChart = { width: 1800, height: 400, margin: {left: 30, right:30, top: 20, bottom:20}}
+		//Scales
+		var xScale = d3.scaleLinear()
+			.domain([0,(data.length * bar_width) + (data.length + bar_spacing)])
+			.range([0,rightChart.width]);
+		
+		var yScale = d3.scaleLinear()
+
+		var xAxis = d3.axisBottom(xScale)
+			.tickSize(0)
+			.tickFormat("");
+
+		var yAxis = d3.axisLeft(yScale)
+			.tickSize(-rightChart.width)
+
+		if (mode == "GBTcount"){
+			maxGoodBuys = d3.max(data, function(d) {
+				return d['good_buys']
+			});
+			maxGoodSells = d3.max(data, function(d) {
+				return d['good_sells']
+			});
+			
+			maxBadBuys = d3.max(data, function(d) {
+				return d['bad_buys']
+			});
+			maxBadSells = d3.max(data, function(d) {
+				return d['bad_sells']
+			});
+			
+			var maxGoodT = maxGoodBuys + maxGoodSells;
+			var maxBadT = maxBadBuys + maxBadSells;
+			var Mtrades =[maxGoodT,maxBadT];
+			var maxTrades = d3.max(Mtrades);
+			var totalTrades= data[0]['total_trades'];
+			// Highestconsole.log(maxTrades);
+				//yScale.domain([0,maxTrades])
+				yScale.domain([0,totalTrades])
+				yScale.range([rightChart.height - rightChart.margin.top,0])
+
+		} else if (mode == "GBTpercent"){
+				yScale.domain([0,1])
+				yScale.range([rightChart.height - rightChart.margin.top,0])
+				
+				yAxis.tickFormat( function(d,i){
+					return (d*100) + "%"
+				})
+		
+		} else if (mode == "GvB"){
+
+		}
+
+		var chart_area2 = d3.select("#rightChartDiv").append("svg")
+			.attr('width', rightChart.width + rightChart.margin.left +rightChart.margin.right)
+			.attr('height',rightChart.height + rightChart.margin.top+ rightChart.margin.bottom)
+			.style("background-color", 'white');
+		var interactive_chart2 = chart_area2.append('g')
+			.attr("transform", "translate(" + rightChart.margin.left + ","+rightChart.margin.top + ")");
+
+
+		var xGroup = interactive_chart2.append("g")
+		    .attr("transform", "translate("+(rightChart.margin.left - bar_width)+"," + (rightChart.height - rightChart.margin.bottom) + ")")
+		    .call(xAxis);
+
+		var yGroup = interactive_chart2.append("g")
+		    .attr("transform", "translate("+(rightChart.margin.left - bar_width -2)+"," + 0 + ")")
+		    .call(yAxis);
+
+
+		// Algo name Lables:
+		interactive_chart2.selectAll(".algoName")
+			.data(data)
+			.enter()
+			.append("text")
+			.attr("class","algoName")
+			.text(function(d) {
+				return d['name'];
+				})
+			.attr("x", function(d, i) {
+				return xScale(i*bar_width) + (bar_spacing*i) + rightChart.margin.left + 10;
+				})
+			.attr("y", function(d) {
+				return rightChart.height;
+				})
+			.attr("font-family", "sans-serif")
+		   		.attr("font-size", "11px")
+			   	.attr("fill", "black")
+				.attr("text-anchor", "middle")
+		
+		if (mode == "GBTcount"){
+			modeTrades.push("Good Trades", "Bad Trades");
+			// total Good Trades
+			interactive_chart2.selectAll(".goodTrade")
+				.data(data)
+				.enter()
+				.append("rect")
+				.attr('class',"goodTrade")
+				.attr("x", function(d,i){
+					return xScale(i*bar_width) + (bar_spacing*i) + rightChart.margin.left;
+				})
+				.attr("y", function(d,i){
+					var goodTrades = d['good_buys'] + d['good_sells'];
+					return (yScale(goodTrades));
+				})
+				.attr("width", (bar_width))
+				.attr("height", function(d,i){
+					var goodTrades = d['good_buys'] + d['good_sells'];
+					return (rightChart.height - rightChart.margin.bottom) - yScale(goodTrades);
+				});
+
+			// total bad trades 
+			interactive_chart2.selectAll(".badTrade")
+				.data(data)
+				.enter()
+				.append("rect")
+				.attr('class',"badTrade")
+				.attr("x", function(d,i){
+					return xScale(i*bar_width) + (bar_spacing*i) + bar_width + rightChart.margin.left;
+				})
+				.attr("y", function(d,i){
+					var badTrades = d['bad_buys'] + d['bad_sells'];
+					return yScale(badTrades);
+				})
+				.attr("width", (bar_width))
+				.attr("height", function(d,i){
+					var badTrades = d['bad_buys'] + d['bad_sells'];
+					return (rightChart.height - rightChart.margin.bottom)  - yScale(badTrades) ;
+				});
+		}
+		// If mode is Percentage: 
+		if (mode == "GBTpercent"){
+			modeTrades.push("Good Trades%", "Bad Trades%");
+			interactive_chart2.selectAll(".goodTrade")
+				.data(data)
+				.enter()
+				.append("rect")
+				.attr('class',"goodTrade")
+				.attr("x", function(d,i){
+					return xScale(i*bar_width) + (bar_spacing*i) + rightChart.margin.left;
+				})
+				.attr("y", function(d,i){
+					var goodTrades = d['good_buy_percentage'] + d['good_sell_percentage'];
+					return (yScale(goodTrades));
+				})
+				.attr("width", (bar_width))
+				.attr("height", function(d,i){
+					var goodTrades = d['good_buy_percentage'] + d['good_sell_percentage'];
+					return (rightChart.height - rightChart.margin.bottom) - yScale(goodTrades);
+				});
+
+			interactive_chart2.selectAll(".badTrade")
+				.data(data)
+				.enter()
+				.append("rect")
+				.attr('class',"badTrade")
+				.attr("x", function(d,i){
+					return xScale(i*bar_width) + (bar_spacing*i) + bar_width + rightChart.margin.left;
+				})
+				.attr("y", function(d,i){
+					var badTrades = d['bad_buy_percentage'] + d['bad_sell_percentage'];
+					return yScale(badTrades);
+				})
+				.attr("width", (bar_width))
+				.attr("height", function(d,i){
+					var badTrades = d['bad_buy_percentage'] + d['bad_sell_percentage'];
+					return (rightChart.height - rightChart.margin.bottom)  - yScale(badTrades) ;
+				});
+		} 
+		// Compares the good buys vs bad buys and good sells vs bad sells
+		if (mode == "GvB"){
+			//TODO; Finish this later
+
+		}
+			
+		// Draw the legend
+		//Draw background rect
+		var legendBG = interactive_chart2.append("rect")
+		  .attr("fill","white")
+		  .attr("x", rightChart.width/2 -150)
+		  .attr("y", -20)
+	          .attr("stroke","grey")
+		  .attr("width", modeTrades.length * 88.3)
+		  .attr("height",55)
+
+		//Actual legend
+		var legendScale = d3.scaleOrdinal()
+		  .domain(modeTrades)
+		  .range([ "#8FBC8F", "#F08080", "#ffcce0", "#33ffcc", "#0066cc","#cc0052"]);
+
+		interactive_chart2.append("g")
+		  .attr("class", "legendOrdinal")
+		  .attr("transform", "translate("+(rightChart.width/2 - rightChart.margin.right - 100)+",-20)");
+
+		var legendOrdinal = d3.legendColor()
+		  .shape("rect")
+		  //.shape("path", d3.symbol().type(d3.symbolTriangle).size(100)())
+		  .shapePadding(50)
+		  .orient('horizontal')
+		  //use cellFilter to hide the "e" cell
+		  //.cellFilter(function(d){ return d.label !== "e" })
+		  .scale(legendScale)
+		  .labelWrap(50)
+	      	  .shapeWidth(40)
+	      	  .labelAlign("start")
+		interactive_chart2.select(".legendOrdinal")
+		  .call(legendOrdinal);
+	}
+
+	</script>
+	
+
+	</div>
 	<br>
 	<div id="bottomChartDiv"></div>
 	<br>
-	<div id="bottomBarDiv"></div>
+	<div id="bottomBarDiv">
 	<script>
+
 	
 	</script>
+	
+	
+	</div>
 
 	<script> 
 	// loads,parses, and calls all chart creation
 	var algoName = "gg";
 	var global_data;
+	var global_answers;
+	function reloadData(){
+		reloadLeftChart();
+		reloadRightChart();
+	}
+
+
+
 	function loadData(){	
 		$.ajax({
 		    type: "GET",
 		    dataType: "json",
 		    url: "/get_benchmark_results/"+algoName,
 		    success: function (data) { 
-			new_data = data
+			var new_data = data
 			parseBenchmark(new_data)
 		 	},
 		});        			
 	}
-		function parseBenchmark(data){
+	function loadAnswers(){	
+		$.ajax({
+		    type: "GET",
+		    dataType: "json",
+		    url: "/get_benchmark_answers/"+algoName,
+		    success: function (data) { 
+			var new_data = data;
+			storeAnswers(new_data)
+		 	},
+		});        			
+	}
+	function parseBenchmark(data){
 			global_data = data;
-			console.log("parsing",data);
 			// load in lefchart settings
 			loadLeftChart();
+			loadRightChart();
 			//console.log(mode);
-		}
+	}
+	function storeAnswers(data){
+		global_answers = data;
+	}
+	function getAnswers(){
+		return global_answers;
+	}
 	loadData();
+	loadAnswers();
 	$(document).ready(function() {
 	    $('.select2-search').select2();
 	});

@@ -242,6 +242,7 @@
 		draw_chart_data(chartID,currency,interval,dataT,num_bars,selected_indicators,data,tf_indicators,line_indicators, dataOp,"load");
 	}
 	function draw_chart_data(chartID,currency,interval,dataT,num_bars,selected_indicators,data,tf_indicators,line_indicators,dataOp,action){
+	   console.log(data);
 		if (first_load){
 		}else{
 			d3.select("#"+chartID).selectAll("svg").remove();
@@ -614,7 +615,7 @@
 
 		}
 		if (action == "load"){
-			updateInterval = setInterval(updateChart, 3000);
+			updateInterval = setInterval(updateChart, 60000);
 		}
 		function updateChart(){
 			var last_bar_id = data[data.length-1]['index'];
@@ -1028,7 +1029,7 @@
 		    dataType: "json",
 		    url: "/get_data/"+currency+"/"+interval+"/"+dataT+"/"+num_bars,
 		    success: function (data) { 
-			new_data = data
+			new_data = data;
 			draw_chart(chartID,currency,interval,dataT,num_bars,selected_indicators,new_data,dataOp)
 
 		 	},

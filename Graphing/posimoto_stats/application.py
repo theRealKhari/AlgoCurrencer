@@ -5,7 +5,7 @@ import json
 import db  # if error, right-click parent directory "mark directory as" "sources root"
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'SUPER SECRET SKELINGTON'
+#app.config['SECRET_KEY'] = 'SUPER SECRET SKELINGTON'
 
 # Various Form classes
 
@@ -58,10 +58,18 @@ def council_results():
 
 @app.route('/algo_benchmark', methods=['GET','POST'])
 def algo_benchmark():
-    modes = [{'name': 'All Trades', 'value':'allTrades'},
+    table_name="gg_benchmark_results"
+    data = db.get_table_panda(table_name)
+    #print(data.name.values)
+    algoNames = data.name.values
+    modes = [{'name': 'Total Trades', 'value':'allTrades'},
                 {'name': 'Correct Trades', 'value':'correctTrades'},
-                {'name': 'Both', 'value':'bothTrades'}]
-    return render_template('algo_benchmark.html',modes= modes)
+                {'name': 'Total Trades & Correct Trades', 'value':'bothTrades'}]
+    
+    GBmodes = [{'name': 'Good/Bad Trade Count', 'value':'GBTcount'},
+                {'name': 'Good/Bad Trade Percentage', 'value':'GBTpercent'},
+                {'name': 'Good vs Bad Buys/Sells Count', 'value':'GvB'}]
+    return render_template('algo_benchmark.html',modes= modes, GBmodes = GBmodes, algoNames = algoNames)
 
 @app.route('/get_data/<currency>/<interval>/<dataT>/<num_bars>', methods=['GET','POST'])
 def get_data(currency,interval,dataT,num_bars):
@@ -96,7 +104,7 @@ def get_benchmark_results(algoName):
     return benchmark_results
     
 @app.route('/get_benchmark_answers/<algoName>', methods=['GET','POST'])
-def get_benchmark_answers(name):
+def get_benchmark_answers(algoName):
     #TODO: update table name to be dynamic depending on the @param: name
     table_name="gg_timeline_answers"
     data = db.get_table_panda(table_name)
@@ -129,5 +137,6 @@ def test_debug():
 
 # -------------------------------------------
 if '__main__' == __name__:
-     app.run(ssl_context=('cert.pem', 'key.pem'), host='0.0.0.0',port=5000, debug=True)
+    #app.run(host='0.0.0.0', port=5000, debug=True) 
+    app.run(ssl_context=('/etc/letsencrypt/live/tuschedulealerts.com/fullchain.pem', '/etc/letsencrypt/live/tuschedulealerts.com/privkey.pem'), host='0.0.0.0',port=5000, debug=True)
 
