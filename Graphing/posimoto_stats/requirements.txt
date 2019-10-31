@@ -25,7 +25,7 @@ pycrypto==2.6.1
 pygobject==3.32.1
 python-dateutil==2.8.0
 pytz==2019.1
-pyxdg==0.25
+pyxdg==0.26
 scandir==1.10.0
 SecretStorage==2.3.1
 six==1.11.0
